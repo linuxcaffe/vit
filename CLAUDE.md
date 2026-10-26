@@ -23,7 +23,7 @@ VIT 1.x, Steve Rader's Perl/Curses full-screen client for Taskwarrior, being ado
 | `env.pl` | Startup: `task show` for colors, reports, `default.command` |
 | `color.pl`, `draw.pl`, `screen.pl`, `curses.pl` | ANSI parsing into curses color pairs, drawing |
 | `prompt.pl`, `search.pl`, `cmdline.pl` | Prompts (tab completion, history), `/` `?` search, `:` commands |
-| `vitrc.pl` | `~/.vitrc`: `map KEY=ACTION`, `set NAME=yes\|no` |
+| `vitrc.pl` | `~/.task/config/vitrc`, else `~/.vitrc` (one, never both; not taskrc syntax): `map KEY=ACTION`, `set NAME=yes\|no` |
 | `commands` | The `:help` text; the build appends it after `__DATA__` (`show_help` in `cmdline.pl`) |
 
 `build.sh` joins them into one script (`build/vit`): `vit.pl` without its `require` lines, then each part

@@ -1,11 +1,19 @@
 # Copyright 2013 - 2018, Scott Kostyshak
 
+# The fleet's place first (~/.task/config/vitrc, synced with the task folder), then ~/.vitrc.
+# Only one is read. No .rc: it's vit's syntax, not taskrc's, so never include it from included.rc.
+sub vitrc_path {
+  my $dir = $ENV{'TW_TASK_DIR'} || glob("~/.task");
+  return "$dir/config/vitrc" if -f "$dir/config/vitrc";
+  return glob("~/.vitrc");
+}
+
 sub parse_vitrc {
-  my $vitrc = glob("~/.vitrc");
+  my $vitrc = &vitrc_path();
   if ( open(IN,"<$vitrc") ) {
     while (<IN>) {
       chop;
-      my $parse_error = "ERROR: incorrect key bind line in .vitrc:\n $_\n";
+      my $parse_error = "ERROR: incorrect key bind line in $vitrc:\n $_\n";
       if ( $_ =~ s/^map // ) {
         my($scut, $cmd) = split(/=/, $_, 2);
 

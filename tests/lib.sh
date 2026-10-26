@@ -15,7 +15,7 @@ VIT="${VIT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/build/vit}"
 
 BIN="$T/bin"              # first on vit's PATH: fake commands (fake_cmd)
 mkdir -p "$HOME" "$DATA" "$WORK" "$T/run" "$BIN"
-unset TASKDATA TW_NOINTERACT TW_CLIENT TW_WEB TW_SPOOL_DIR
+unset TASKDATA TW_TASK_DIR TW_NOINTERACT TW_CLIENT TW_WEB TW_SPOOL_DIR
 
 # Refuse anything that could reach the real task data.
 case "$(readlink -f "$DATA")" in

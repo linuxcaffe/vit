@@ -4,13 +4,20 @@
 vitrc \- Configuration file for the vit(1) command
 
 .SH SYNOPSIS
+.B ~/.task/config/vitrc
+.br
 .B $HOME/.vitrc
 
 .SH DESCRIPTION
 .B VIT
-obtains its configuration data from a file called
-.I .vitrc
-\&. This file must be located in the user's home directory.
+reads its configuration from
+.I ~/.task/config/vitrc
+(\fB$TW_TASK_DIR/config/vitrc\fR when TW_TASK_DIR is set), so it syncs with the task folder.
+When that file doesn't exist it reads
+.I ~/.vitrc
+instead; never both. The file is in vit's syntax, not taskrc's: never
+.B include
+it from a taskrc.
 
 Except for comments (lines starting with "#"), currently the only acceptable
 commands in .vitrc are

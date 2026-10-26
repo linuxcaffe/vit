@@ -63,7 +63,11 @@ terminal. So tw's own syntax works in `:REPORT FILTER` and `f` (`:@_ next` witho
 vit's own bookkeeping (counts, project and tag lists, UUIDs) stays on `task`: a `tw` call costs
 about 0.2 s.
 
-## Configuration: ~/.vitrc
+## Configuration: ~/.task/config/vitrc
+
+vit reads `~/.task/config/vitrc` (`$TW_TASK_DIR/config/vitrc` when that's set), which syncs with the
+task folder, or `~/.vitrc` when there's none; never both. No `.rc` on purpose: it's vit's own syntax,
+not taskrc's, so it must never be `include`d.
 
 ```
 map <F9>=:ready<Return>

@@ -1,3 +1,5 @@
+ Mon Oct 26 2026 - settings from ~/.task/config/vitrc (synced with the task folder) when it exists,
+                    else ~/.vitrc as before
  Mon Oct 26 2026 - This is VIT 1.4.1: harnessing tw (contexts, shortcuts, themes, wrappers; tw.ui=vit)
  Mon Oct 26 2026 - the header shows the context the report really ran with (an override, typed or
                     tw's @_ / @: name, as task reports it); : takes a report word anywhere (:+home next,
