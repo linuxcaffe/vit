@@ -41,31 +41,17 @@ sub cmd_line {
     return;
   }
   if ( $str eq 'help' || $str eq 'h' ) {
-    &shell_exec(['view', $commands_file],'no-wait');
+    &show_help('');
     return;
   }
   if ( $str =~ /^help (.*)/ || $str =~ /^h (.*)/ ) {
-    my $p = $1;
-    my $tmp_file = "/tmp/vit-help.$$";
-    open(IN,"<$commands_file");
-    open(OUT,">$tmp_file");
-    print OUT "\n";
-    while(<IN>) {
-      if ( $_ =~ /$p/ ) {
-        print OUT $_;
-      }
-    }
-    close(IN);
-    print OUT "\n";
-    close(OUT);
-    &shell_exec(['view', $tmp_file],'no-wait');
-    unlink($tmp_file);
+    &show_help($1);
     return;
   }
   if ( $str eq 'q' ) {
     &clean_exit();
   }
-  if ( grep(/^$str$/,@report_types) ) {
+  if ( grep { $_ eq $str } @report_types ) {
     $prev_command = $current_command;
     $current_command = $str;
     &read_report('init');
@@ -74,7 +60,7 @@ sub cmd_line {
   }
   if ( $str =~ /^(.*?) .*/ ) {
     my $s = $1;
-    if ( grep(/^$s/,@report_types) ) {
+    if ( grep { index($_, $s) == 0 } @report_types ) {
       $prev_command = $current_command;
       $current_command = $str;
       &read_report('init');
@@ -85,6 +71,26 @@ sub cmd_line {
   $error_msg = "$str: command not found";
   &draw_error_msg();
   return;
+}
+
+#------------------------------------------------------------------
+# show_help TEXT -- the help (after __DATA__ in the built vit), only the lines
+# containing TEXT (literally, any case) when it's given, in view (vim) or less
+
+sub show_help {
+  my ($p) = @_;
+  if ( ! @help_lines ) {
+    @help_lines = <DATA>;
+  }
+  my $tmp = File::Temp->new(TEMPLATE => 'vit-help.XXXXXX', TMPDIR => 1);
+  print $tmp "\n";
+  for my $line ( @help_lines ) {
+    print $tmp $line if $p eq '' || index(lc($line), lc($p)) >= 0;
+  }
+  print $tmp "\n";
+  close($tmp);
+  my $viewer = ( grep { -x "$_/view" } split(/:/, $ENV{PATH} || '') ) ? 'view' : 'less';
+  &shell_exec([$viewer, $tmp->filename],'no-wait');
 }
 
 return 1;

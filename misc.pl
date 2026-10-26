@@ -20,6 +20,7 @@ sub clean_exit {
   }
 
   endwin() unless isendwin();
+  print "vit: audit log in $audit_file\n" if $audit;
   exit();
 }
 

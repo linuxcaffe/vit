@@ -2,8 +2,8 @@
 # build.sh — join vit.pl and its parts into the single vit script
 #
 #   ./build.sh [OUT]        default OUT: build/vit
-#   PREFIX=/usr/local ./build.sh   where the help file (commands) is found:
-#                           $PREFIX/share/vit/commands; unset, vit reads ./commands
+#
+# The help text (commands) goes in after __DATA__, so vit never looks for a file.
 #
 # Replaces configure + Makefile.in (the same join, without autoconf).
 set -euo pipefail
@@ -25,13 +25,14 @@ trap 'rm -f "$tmp"' EXIT
 
 {
   grep -v '^require' vit.pl \
-    | sed -e "s|%BUILD%|$BUILD|" -e "s|%VERSION%|$VERSION|" \
-    | if [[ -n "${PREFIX:-}" ]]; then sed "s|%prefix%|$PREFIX|"; else cat; fi
+    | sed -e "s|%BUILD%|$BUILD|" -e "s|%VERSION%|$VERSION|"
   for f in $PARTS; do
     echo "########################################################"
     echo "## $f..."
     grep -v '^return' "$f"
   done
+  echo "__DATA__"
+  cat commands
 } > "$tmp"
 
 perl -c "$tmp" 2>/dev/null || { perl -c "$tmp"; exit 1; }

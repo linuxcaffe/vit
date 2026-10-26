@@ -25,7 +25,10 @@ sub parse_args {
     next;
   }
   if ( $audit ) {
-    open(AUDIT, ">", "vit_audit.log") or die "$!";
+    my $dir = ( $ENV{'XDG_RUNTIME_DIR'} || "$ENV{'HOME'}/.cache" ) . '/vit';
+    make_path($dir);
+    $audit_file = "$dir/vit_audit.log";
+    open(AUDIT, ">", $audit_file) or die "$audit_file: $!";
     open STDERR, '>&AUDIT';
 
     # flush AUDIT after printing to it
@@ -41,7 +44,8 @@ sub parse_args {
 
 sub usage {
   print "usage: vit [switches] [task_args]\n";
-  print "  -audit     print task commands to vit_audit.log\n";
+  print "  -audit     log task commands to \$XDG_RUNTIME_DIR/vit/vit_audit.log\n";
+  print "             (~/.cache/vit/ without XDG_RUNTIME_DIR)\n";
   print "  -titlebar  sets the xterm titlebar to \"$version\"\n";
   print "  -version  prints the version\n";
   print "  task_args  any set of task commandline args that print an \"ID\" column\n";

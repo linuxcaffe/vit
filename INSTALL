@@ -7,7 +7,6 @@ tw -I vit
 
 ## by hand...
 ./build.sh                               # builds build/vit
-PREFIX=/usr/local ./build.sh             # to read the help from /usr/local/share/vit/commands
 cp build/vit ~/bin/                      # or anywhere on PATH
 
 Requires perl with Curses, Try::Tiny, Text::CharWidth

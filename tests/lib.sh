@@ -13,7 +13,7 @@ WORK="$T/work"            # vit's cwd
 TMUX_SOCK="vit-test-$$"
 VIT="${VIT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/build/vit}"
 
-mkdir -p "$HOME" "$DATA" "$WORK"
+mkdir -p "$HOME" "$DATA" "$WORK" "$T/run"
 unset TASKDATA TW_NOINTERACT TW_CLIENT TW_WEB TW_SPOOL_DIR
 
 # Refuse anything that could reach the real task data.
@@ -42,11 +42,14 @@ trap teardown EXIT
 # t — run task against the throwaway database, quietly
 t() { task rc.verbose=nothing "$@" >/dev/null 2>&1; }
 
-# start_vit ARGS… — start vit in tmux; waits until the report header shows
+# start_vit ARGS… — start vit in tmux; waits until the report header shows (the first
+# argument that isn't a -switch is the report)
 start_vit() {
   tmux -L "$TMUX_SOCK" new-session -d -x 120 -y 30 -c "$WORK" \
-    "env HOME='$HOME' TASKRC='$TASKRC' '$VIT' $*; echo VIT-EXIT:\$?; sleep 600"
-  wait_for "task ${1:-next}" || fail "vit didn't start"
+    "env HOME='$HOME' TASKRC='$TASKRC' XDG_RUNTIME_DIR='$T/run' '$VIT' $*; echo VIT-EXIT:\$?; sleep 600"
+  local report=next a
+  for a in "$@"; do [[ "$a" == -* ]] || { report="$a"; break; }; done
+  wait_for "task $report" || fail "vit didn't start"
   settle
 }
 

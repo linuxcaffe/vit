@@ -1,3 +1,10 @@
+ Mon Oct 26 2026 - typed text is never a regex: ':(' and ':h (' no longer crash vit; :h TEXT
+                    matches literally, any case
+ Mon Oct 26 2026 - the help text is built into vit: :h works wherever vit runs from (it crashed
+                    or showed nothing without an installed commands file)
+ Mon Oct 26 2026 - :N for a task no longer in the report says so (a stale table jumped instead)
+ Mon Oct 26 2026 - -audit logs to $XDG_RUNTIME_DIR/vit/ (was the current folder); help's temp file
+                    is private; 't' no longer beeps
  Mon Oct 26 2026 - act on tasks by UUID: IDs renumbered elsewhere (tw-web, a sync) no longer
                     redirect d, D, A, m, e, = and the rest to another task; the selection follows
                     its task across a re-read; %TASKUUID for .vitrc maps

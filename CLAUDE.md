@@ -24,14 +24,15 @@ VIT 1.x, Steve Rader's Perl/Curses full-screen client for Taskwarrior, being ado
 | `color.pl`, `draw.pl`, `screen.pl`, `curses.pl` | ANSI parsing into curses color pairs, drawing |
 | `prompt.pl`, `search.pl`, `cmdline.pl` | Prompts (tab completion, history), `/` `?` search, `:` commands |
 | `vitrc.pl` | `~/.vitrc`: `map KEY=ACTION`, `set NAME=yes\|no` |
-| `commands` | The `:help` text |
+| `commands` | The `:help` text; the build appends it after `__DATA__` (`show_help` in `cmdline.pl`) |
 
 `build.sh` joins them into one script (`build/vit`): `vit.pl` without its `require` lines, then each part
 without its trailing `return 1;`. So **every part shares one namespace**, and `^require`/`^return` at the
 start of a line are build syntax: don't start a real line of code with either. The parts come
 *after* `vit.pl`'s main sequence, which ends in `exit`, so **a part's top-level statements never run**:
-parts define subs only, and every global with a value is set in `vit.pl`. `%prefix%`, `%TASK%`,
-`%CLEAR%` in `vit.pl` are placeholders (`PREFIX` env sets the first; the others fall back in `vit.pl`).
+parts define subs only, and every global with a value is set in `vit.pl`. `%VERSION%` and `%BUILD%`
+in `vit.pl` are filled in by the build; the help text goes after `__DATA__`, so the built `vit` is the
+one file to install (plus the man pages).
 The installed copy until the fleet installer lands is `/usr/local/bin/vit` (root-owned, built 2025-01-17).
 
 ## Testing
@@ -51,7 +52,8 @@ tests/run.sh stale_id      # one test
   Use report `vt` (id, project, description, sorted by description) so lines have a known order.
 - The pre-commit hook (`.tools/pre-commit`) runs the suite. Install once per clone:
   `ln -sf ../../.tools/pre-commit .git/hooks/pre-commit`.
-- Interactive debugging: `build/vit -audit` logs every `task` call to `./vit_audit.log`.
+- Interactive debugging: `build/vit -audit` logs every `task` call to `$XDG_RUNTIME_DIR/vit/vit_audit.log`
+  (`~/.cache/vit/` without it), and says where on exit. The tests set `XDG_RUNTIME_DIR` to their temp dir.
 
 ## Rules
 
@@ -68,7 +70,8 @@ tests/run.sh stale_id      # one test
    **Writes by UUID** (`selected_uuid`, from `@report2uuid`, mapped at each read with one `_get`):
    IDs shift when tw-web or a gittw pull changes the data. After a re-read the selection follows the
    task (`follow_selection`). Messages may still show the ID; arguments never use it.
-4. **User text is never a regex** unless it's a search (`/`, `?`), and then a bad one is an error message.
+4. **User text is never a regex** except in a search (`/`, `?`), where a bad pattern is matched literally.
+   `:REPORT` matches report names by `eq`/prefix, `:h TEXT` by `index`, case-insensitive.
 5. `$SIG{__WARN__}` makes any Perl warning fatal, on purpose. Keep the code warning-free.
 
 ## Time log

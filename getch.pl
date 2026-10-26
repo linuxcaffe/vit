@@ -182,7 +182,8 @@ sub getch_loop {
       }
 
       if ( $ch eq 't' ) {
-        &ungetstr(':!rw task ')
+        &ungetstr(':!rw task ');
+        last CASE;
       }
 
       if ( $ch eq 'T' ) {

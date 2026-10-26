@@ -62,6 +62,7 @@ sub inner_read_report {
   my @prev_num_tasks = $num_tasks;
   my @prev_report2taskid = @report2taskid;
   my @prev_report2uuid = @report2uuid;
+  my @prev_taskid2report = @taskid2report;
   my @prev_report_tokens = @report_tokens;
   my @prev_report_lines = @report_lines;
   my @prev_report_colors_fg = @report_colors_fg;
@@ -75,6 +76,7 @@ sub inner_read_report {
   $prev_task_selected_idx = $task_selected_idx;
   @report2taskid = ();
   @report2uuid = ();
+  @taskid2report = ();
   @report_tokens = ();
   @report_lines = ();
   @report_colors_fg = ();
@@ -212,8 +214,9 @@ sub inner_read_report {
     splice(@report_colors_bg,$report_header_idx,1);
     splice(@report_attrs,$report_header_idx,1);
     splice(@report2taskid,$report_header_idx,1);
-    for (0..$#taskid2report) {
-      $taskid2report[$_]-- if ($_>=$report_header_idx)
+    for my $id (0..$#taskid2report) {
+      next if ! defined $taskid2report[$id];
+      $taskid2report[$id]-- if $taskid2report[$id] > $report_header_idx;
     }
     if ( $task_selected_idx > $#report_tokens ) {
       $task_selected_idx = $#report_tokens;
@@ -236,6 +239,7 @@ sub inner_read_report {
     @report_attrs = @prev_report_attrs;
     @report2taskid = @prev_report2taskid;
     @report2uuid = @prev_report2uuid;
+    @taskid2report = @prev_taskid2report;
     $convergence = $prev_convergence;
     return;
   }

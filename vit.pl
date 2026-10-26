@@ -18,6 +18,7 @@ use Encode;
 use Text::CharWidth qw(mbswidth);
 use Text::ParseWords qw(shellwords);
 use File::Temp ();
+use File::Path qw(make_path);
 
 # Clean up terminal on a Perl error or warning. This makes it more clear what
 # the error or warning message is and it leaves the terminal in a usable state.
@@ -29,8 +30,6 @@ $SIG{__DIE__} = sub { &error_exit(@_); };
 # Exit even on Perl warning
 $SIG{__WARN__} = sub { &error_exit("(converted from warning) "."@_"); };
 
-our $commands_file = '%prefix%/share/vit/commands';
-if ( $commands_file =~ /^%/ ) { $commands_file = "./commands"; }
 # task and clear are found on PATH; every task call goes through exec.pl
 our $task = 'task';
 our $clear = 'clear';
@@ -40,6 +39,7 @@ our $timeout_bin = grep { -x "$_/timeout" } split(/:/, $ENV{PATH} || '');
 
 our $cli_args = '';
 our $audit = 0;
+our $audit_file;         # -audit: $XDG_RUNTIME_DIR/vit/vit_audit.log (args.pl)
 our @colors2pair;
 our $convergence = '';
 our $current_command = 'unknown';
@@ -83,7 +83,8 @@ our @report_colors_fg = ();
 our @report_colors_bg = ();
 our @report_attrs = ();
 our @report2taskid = ();
-our @report2uuid = ();   # each line's task, by UUID: writes use it (IDs shift)
+our @report2uuid = ();
+our @help_lines = ();   # each line's task, by UUID: writes use it (IDs shift)
 our $search_direction = 1;
 our $search_pat = undef;
 our $selection_attrs = '';
