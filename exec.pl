@@ -75,8 +75,8 @@ sub task_open {
     } else {
       open(STDERR, '>', '/dev/null');
     }
-    exec { $argv[0] } @argv;
-    print "vit: can not run $argv[0]: $!\n";
+    exec { $argv[0] } @argv
+      or print "vit: can not run $argv[0]: $!\n";
     POSIX::_exit(127);
   }
   return $fh;
@@ -248,11 +248,12 @@ sub shell_exec {
     $ENV{TW_CLIENT} = 'vit';
     &audit("EXEC $shown");
     if ( ref($cmd) ) {
-      exec { $cmd->[0] } @$cmd;
+      exec { $cmd->[0] } @$cmd
+        or print "vit: can not run $shown: $!\n";
     } else {
-      exec { '/bin/sh' } '/bin/sh', '-c', $cmd;
+      exec { '/bin/sh' } '/bin/sh', '-c', $cmd
+        or print "vit: can not run $shown: $!\n";
     }
-    print "vit: can not run $shown: $!\n";
     POSIX::_exit(127);
   }
   waitpid($pid, 0) if defined $pid;

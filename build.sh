@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # build.sh — join vit.pl and its parts into the single vit script
 #
-#   ./build.sh [OUT]        default OUT: build/vit
+#   ./build.sh [OUT]        default OUT: build/vit; a release: ./build.sh vit (committed)
 #
 # The help text (commands) goes in after __DATA__, so vit never looks for a file.
 #
@@ -13,11 +13,14 @@ OUT="${1:-build/vit}"
 PARTS="args.pl cmdline.pl cmds.pl color.pl curses.pl draw.pl env.pl exec.pl
   getch.pl misc.pl prompt.pl read.pl search.pl screen.pl vitrc.pl"
 
+# A release build (VERSION without -dev) depends on the source alone, so the committed
+# vit can be checked against a fresh build (.tools/pre-commit). A -dev build names its commit.
 VERSION="$(cat VERSION)"
-if git rev-parse --short HEAD >/dev/null 2>&1; then
+BUILD="$VERSION"
+if [[ "$VERSION" == *-dev ]] && git rev-parse --short HEAD >/dev/null 2>&1; then
   VERSION="$VERSION ($(git rev-parse --short HEAD))"
+  BUILD="$VERSION"
 fi
-BUILD="$(cat VERSION) built after $(date -u -r CHANGES)"
 
 mkdir -p "$(dirname "$OUT")"
 tmp="$OUT.tmp.$$"

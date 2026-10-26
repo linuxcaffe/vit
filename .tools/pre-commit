@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
-# pre-commit: build vit and run the tmux tests (~15 s); a red run blocks the commit.
+# pre-commit: build vit and run the tmux tests (~25 s); a red run blocks the commit.
+# On a release (VERSION without -dev) the committed vit must be exactly a fresh build:
+# vit.meta's checksum covers that file. Rebuild with ./build.sh vit.
 # Install once per clone: ln -sf ../../.tools/pre-commit .git/hooks/pre-commit
 # Bypass a deliberate work-in-progress commit with --no-verify.
-exec "$(git rev-parse --show-toplevel)/tests/run.sh"
+set -e
+top="$(git rev-parse --show-toplevel)"
+if [[ "$(cat "$top/VERSION")" != *-dev ]]; then
+  fresh="$(mktemp)"; trap 'rm -f "$fresh"' EXIT
+  "$top/build.sh" "$fresh" >/dev/null
+  if ! cmp -s "$fresh" <(git show :vit 2>/dev/null); then
+    echo "pre-commit: the staged vit isn't a fresh build of this source: ./build.sh vit && git add vit" >&2
+    exit 1
+  fi
+fi
+exec "$top/tests/run.sh"

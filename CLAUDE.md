@@ -79,6 +79,21 @@ tests/run.sh stale_id      # one test
    `gittw sync` when gittw is on PATH, with `TW_TASK_DIR` from task's `data.location`, else `task sync`.
 6. `$SIG{__WARN__}` makes any Perl warning fatal, on purpose. Keep the code warning-free.
 
+## Releasing (fleet)
+
+`vit.meta` + `vit.install` (`# HANDCRAFTED`) live here; `make-awesome.py` copies them into
+`~/dev/awesome-taskwarrior` (`registry.d/`, `installers/`). The built **`vit` is committed** at each release
+(the `.meta` checksum covers it), with the man pages and `README.md`.
+
+1. Set `VERSION` (no `-dev`), `version=` in `vit.meta`, `VERSION=` in `vit.install`; a `CHANGES` line.
+2. `./build.sh vit` (a release build has no date or hash, so it's reproducible); the pre-commit hook
+   refuses a staged `vit` that isn't a fresh build.
+3. `tests/run.sh` (make-awesome's Testing stage only runs `test-*.py`, not this suite).
+4. The user runs `make-awesome.py "vit X.Y.Z: …" --dry-run`, then for real (its meta stage asks questions).
+5. Wait for raw GitHub (~5 min), check `registry.d/vit.meta` and `index.json`, then `tw -I vit` / `tw -u vit`
+   on yoga only, and sync (fleet: one station).
+6. Back to `X.Y.Z+1-dev` in `VERSION`.
+
 ## Time log
 
 Log milestones to `~/.nb/claude/accounting/dev_timelog.md` under the account `vit:<topic>` (see the

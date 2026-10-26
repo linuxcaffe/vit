@@ -2,7 +2,10 @@ CHANGES
 INSTALL
 LICENSE
 MANIFEST
-README
+README.md
+vit
+vit.meta
+vit.install
 VERSION
 commands
 build.sh

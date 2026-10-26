@@ -1,3 +1,5 @@
+ Mon Oct 26 2026 - This is VIT 1.4.0: the first awesome-taskwarrior fleet release (tw -I vit)
+ Mon Oct 26 2026 - build.sh: a release build is reproducible (no date, no hash); vit committed
  Mon Oct 26 2026 - P offers the taskrc's uda.priority.values (one key each, any case; typed with
                     tab completion when a value is longer); n (or -) for none
  Mon Oct 26 2026 - s runs gittw sync when gittw is installed (TW_TASK_DIR from data.location),
