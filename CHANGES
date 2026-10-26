@@ -1,3 +1,5 @@
+ Mon Oct 26 2026 - a missing Perl module (Curses, Try::Tiny, Text::CharWidth) gets a plain message
+                    naming it and how to install it, instead of Perl's @INC dump
  Mon Oct 26 2026 - This is VIT 1.4.0: the first awesome-taskwarrior fleet release (tw -I vit)
  Mon Oct 26 2026 - build.sh: a release build is reproducible (no date, no hash); vit committed
  Mon Oct 26 2026 - P offers the taskrc's uda.priority.values (one key each, any case; typed with

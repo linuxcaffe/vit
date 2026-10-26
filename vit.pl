@@ -8,6 +8,19 @@
 # Copyright 2013 - 2018, Scott Kostyshak
 
 use strict;
+
+# The modules a perl may not have: say which and how to get them, before the
+# use lines below would stop with Perl's own message
+BEGIN {
+  my @missing = grep { ! eval "require $_; 1" } qw(Curses Try::Tiny Text::CharWidth);
+  if ( @missing ) {
+    print STDERR "vit: needs the Perl module(s) @missing\n",
+      "  Debian/Ubuntu: sudo apt install libcurses-perl libtry-tiny-perl libtext-charwidth-perl\n",
+      "  elsewhere: cpan @missing\n";
+    exit 1;
+  }
+}
+
 use Curses;
 use Time::HiRes qw(usleep);
 use Try::Tiny;
