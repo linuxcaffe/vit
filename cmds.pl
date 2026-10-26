@@ -202,15 +202,17 @@ sub task_set_priority {
   my $id = $report2taskid[$task_selected_idx];
   my $uuid = &selected_uuid() // return;
   my $prio = &task_info('Priority');
-  if ( $prio eq '' ) {
-    $prio = 'N';
+  my @values = @priority_values ? @priority_values : ('H', 'M', 'L');
+  my $none = ( grep { lc($_) eq 'n' } @values ) ? '-' : 'n';
+  my $p;
+  if ( grep { length($_) != 1 } @values ) {
+    # a value longer than one key: type it (tab completes)
+    $p = &match_priority(&prompt_str("Priority: "), $none, @values);
+  } else {
+    $p = &match_priority(&prompt_chr("Priority " . join(' ', @values) . " ($none: none): "),
+                         $none, @values);
   }
-  my $p = &prompt_chr("Change priority (l/m/h/n): ");
-  $p = uc($p);
-  if ( $p ne $prio && $p =~ /[LMHN]/ ) {
-    if ( $p eq 'N' ) {
-      $p = '';
-    }
+  if ( defined $p && $p ne $prio ) {
     my ($es,$result) = &task_exec($uuid, 'modify', "priority:$p");
     if ( $es != 0 ) {
       $error_msg = $result;
@@ -225,6 +227,19 @@ sub task_set_priority {
     &draw_prompt_line('');
     return;
   }
+}
+
+#------------------------------------------------------------------
+# match_priority KEY NONE VALUES -- the value KEY names: exactly, else the one
+# value it matches in any case; '' for NONE; undef for no (or several) match
+
+sub match_priority {
+  my ($key, $none, @values) = @_;
+  return undef if ! defined $key || $key eq '';
+  return '' if $key eq $none;
+  return $key if grep { $_ eq $key } @values;
+  my @ci = grep { lc($_) eq lc($key) } @values;
+  return @ci == 1 ? $ci[0] : undef;
 }
 
 #------------------------------------------------------------------

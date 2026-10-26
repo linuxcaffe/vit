@@ -110,6 +110,18 @@ sub task_check {
 }
 
 #------------------------------------------------------------------
+# task_get NAME -- one DOM value ('rc.data.location', '3.uuid'), '' if none
+
+sub task_get {
+  my $fh = &task_open({ read => 1 }, '_get', @_);
+  my $line = <$fh>;
+  &task_close($fh);
+  $line = '' if ! defined $line;
+  chomp $line;
+  return $line;
+}
+
+#------------------------------------------------------------------
 # task_uuids IDS -- { id => uuid } for the IDs that exist now, in one call
 
 sub task_uuids {

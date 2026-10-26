@@ -89,7 +89,7 @@ sub show_help {
   }
   print $tmp "\n";
   close($tmp);
-  my $viewer = ( grep { -x "$_/view" } split(/:/, $ENV{PATH} || '') ) ? 'view' : 'less';
+  my $viewer = &on_path('view') ? 'view' : 'less';
   &shell_exec([$viewer, $tmp->filename],'no-wait');
 }
 

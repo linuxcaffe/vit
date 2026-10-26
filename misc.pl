@@ -84,6 +84,14 @@ sub task_version {
 }
 
 #------------------------------------------------------------------
+# on_path NAME -- true when an executable NAME is on PATH
+
+sub on_path {
+  my ($name) = @_;
+  return scalar grep { -x "$_/$name" } split(/:/, $ENV{'PATH'} || '');
+}
+
+#------------------------------------------------------------------
 
 sub task_info {
   my $n = $_[0];

@@ -35,7 +35,7 @@ our $task = 'task';
 our $clear = 'clear';
 our $task_timeout = 15;  # seconds, for every captured task call
 our $spool_dir;          # TW_SPOOL_DIR, made on the first write (exec.pl)
-our $timeout_bin = grep { -x "$_/timeout" } split(/:/, $ENV{PATH} || '');
+our $timeout_bin = &on_path('timeout');
 
 our $cli_args = '';
 our $audit = 0;
@@ -84,7 +84,8 @@ our @report_colors_bg = ();
 our @report_attrs = ();
 our @report2taskid = ();
 our @report2uuid = ();
-our @help_lines = ();   # each line's task, by UUID: writes use it (IDs shift)
+our @help_lines = ();
+our @priority_values = ();  # uda.priority.values, read at start (env.pl)   # each line's task, by UUID: writes use it (IDs shift)
 our $search_direction = 1;
 our $search_pat = undef;
 our $selection_attrs = '';

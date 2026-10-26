@@ -102,6 +102,8 @@ sub prompt_str {
       @match_types = @project_types;
     } elsif ( $mode eq 'tag' ) {
       @match_types = @tag_types;
+    } elsif ( $mode eq 'priority' ) {
+      @match_types = @priority_values;
     }
   }
 
@@ -137,7 +139,7 @@ sub prompt_str {
     }
     if ( $ch eq "\t" or $ch eq KEY_STAB or $ch eq KEY_BTAB ) {
       # handle tab completion
-      if ( $mode ne 'cmd' and $mode ne 'project' and $mode ne 'tag' ) {
+      if ( $mode ne 'cmd' and $mode ne 'project' and $mode ne 'tag' and $mode ne 'priority' ) {
         # tab completion only makes sense for enumerable fields
         beep();
         next;

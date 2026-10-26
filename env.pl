@@ -100,6 +100,8 @@ sub init_task_env {
     print "Fatal error: default.command (\"$default_command\") must print an \"ID\" column\n";
     exit(1);
   }
+  # whatever the taskrc defines (2.6.2's default: H,M,L,), for P
+  @priority_values = grep { $_ ne '' } split(/,/, &task_get('rc.uda.priority.values'));
   &audit("ENV default command is \"$default_command\"");
   $current_command = $default_command;
   push(@reports,$default_command);

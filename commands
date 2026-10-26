@@ -47,7 +47,9 @@
  nav   PgUp            scroll up (back) up one page
  cmd   /STRING         search forwards for regular expression STRING
  cmd   ?STRING         search backwards for regular expression STRING
- cmd   P [hmln]        set the current task's priority to H, M, L, or none
+ cmd   P KEY           set the current task's priority: the taskrc's uda.priority.values
+                       (H M L by default), any case; n for none
+ cmd   s               sync: gittw sync when gittw is installed, else task sync
  cmd   p STRING        set the current task's project to STRING
  cmd   p STRING<tab>   set the current task's project to STRING using tab completion
  cmd   p <tab>         set the current task's project using tab completion

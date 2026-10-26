@@ -169,6 +169,15 @@ sub getch_loop {
       }
 
       if ( $ch eq 's' ) {
+        if ( &on_path('gittw') ) {
+          # gittw finds the data by TW_TASK_DIR (else ~/.task): give it task's own
+          my $dir = $ENV{'TW_TASK_DIR'} || &task_get('rc.data.location');
+          local %ENV = %ENV;
+          $ENV{'TW_TASK_DIR'} = $dir if $dir ne '';
+          &shell_exec(['gittw', 'sync'],'wait');
+          $reread_needed = 1;
+          last CASE;
+        }
         my $majmin = &task_version('major.minor');
         if ( $majmin >= 2.3 ) {
           &shell_exec([$task, 'sync'],'wait');

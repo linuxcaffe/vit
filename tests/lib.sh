@@ -13,7 +13,8 @@ WORK="$T/work"            # vit's cwd
 TMUX_SOCK="vit-test-$$"
 VIT="${VIT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/build/vit}"
 
-mkdir -p "$HOME" "$DATA" "$WORK" "$T/run"
+BIN="$T/bin"              # first on vit's PATH: fake commands (fake_cmd)
+mkdir -p "$HOME" "$DATA" "$WORK" "$T/run" "$BIN"
 unset TASKDATA TW_NOINTERACT TW_CLIENT TW_WEB TW_SPOOL_DIR
 
 # Refuse anything that could reach the real task data.
@@ -39,6 +40,14 @@ teardown() {
 }
 trap teardown EXIT
 
+# vit's PATH: the system's only, so nothing installed for the user (gittw in ~/.task/scripts,
+# say) can reach real data; tests add fakes with fake_cmd
+TASK_DIR_OF_BIN="$(dirname "$(command -v task)")"
+VIT_PATH="$BIN:$TASK_DIR_OF_BIN:/usr/local/bin:/usr/bin:/bin"
+
+# fake_cmd NAME — install stdin as an executable NAME on vit's PATH
+fake_cmd() { cat > "$BIN/$1"; chmod +x "$BIN/$1"; }
+
 # t — run task against the throwaway database, quietly
 t() { task rc.verbose=nothing "$@" >/dev/null 2>&1; }
 
@@ -46,7 +55,7 @@ t() { task rc.verbose=nothing "$@" >/dev/null 2>&1; }
 # argument that isn't a -switch is the report)
 start_vit() {
   tmux -L "$TMUX_SOCK" new-session -d -x 120 -y 30 -c "$WORK" \
-    "env HOME='$HOME' TASKRC='$TASKRC' XDG_RUNTIME_DIR='$T/run' '$VIT' $*; echo VIT-EXIT:\$?; sleep 600"
+    "env HOME='$HOME' TASKRC='$TASKRC' XDG_RUNTIME_DIR='$T/run' PATH='$VIT_PATH' '$VIT' $*; echo VIT-EXIT:\$?; sleep 600"
   local report=next a
   for a in "$@"; do [[ "$a" == -* ]] || { report="$a"; break; }; done
   wait_for "task $report" || fail "vit didn't start"

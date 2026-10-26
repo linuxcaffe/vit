@@ -1,3 +1,7 @@
+ Mon Oct 26 2026 - P offers the taskrc's uda.priority.values (one key each, any case; typed with
+                    tab completion when a value is longer); n (or -) for none
+ Mon Oct 26 2026 - s runs gittw sync when gittw is installed (TW_TASK_DIR from data.location),
+                    else task sync
  Mon Oct 26 2026 - typed text is never a regex: ':(' and ':h (' no longer crash vit; :h TEXT
                     matches literally, any case
  Mon Oct 26 2026 - the help text is built into vit: :h works wherever vit runs from (it crashed

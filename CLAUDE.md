@@ -50,6 +50,9 @@ tests/run.sh stale_id      # one test
 - Helpers: `t` (quiet `task`), `start_vit REPORT`, `select_text TEXT` (vit's `/` search),
   `prompt KEY TEXT`, `keys`, `settle` (until the screen stops changing), `field FILTER JQ`, `check MSG CMD…`.
   Use report `vt` (id, project, description, sorted by description) so lines have a known order.
+- vit runs with a **closed PATH** (`$T/bin`, task's folder, `/usr/local/bin`, `/usr/bin`, `/bin`), so a
+  command installed for the user (`gittw` in `~/.task/scripts`) can never touch real data from a test;
+  `fake_cmd NAME` puts a fake first on it.
 - The pre-commit hook (`.tools/pre-commit`) runs the suite. Install once per clone:
   `ln -sf ../../.tools/pre-commit .git/hooks/pre-commit`.
 - Interactive debugging: `build/vit -audit` logs every `task` call to `$XDG_RUNTIME_DIR/vit/vit_audit.log`
@@ -72,7 +75,9 @@ tests/run.sh stale_id      # one test
    task (`follow_selection`). Messages may still show the ID; arguments never use it.
 4. **User text is never a regex** except in a search (`/`, `?`), where a bad pattern is matched literally.
    `:REPORT` matches report names by `eq`/prefix, `:h TEXT` by `index`, case-insensitive.
-5. `$SIG{__WARN__}` makes any Perl warning fatal, on purpose. Keep the code warning-free.
+5. **Fleet fit:** `P` offers `uda.priority.values` as the taskrc defines them (read at start); `s` runs
+   `gittw sync` when gittw is on PATH, with `TW_TASK_DIR` from task's `data.location`, else `task sync`.
+6. `$SIG{__WARN__}` makes any Perl warning fatal, on purpose. Keep the code warning-free.
 
 ## Time log
 
