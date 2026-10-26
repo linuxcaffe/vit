@@ -1,3 +1,4 @@
+ Mon Oct 26 2026 - This is VIT 1.4.2: settings in ~/.task/config/vitrc
  Mon Oct 26 2026 - settings from ~/.task/config/vitrc (synced with the task folder) when it exists,
                     else ~/.vitrc as before
  Mon Oct 26 2026 - This is VIT 1.4.1: harnessing tw (contexts, shortcuts, themes, wrappers; tw.ui=vit)
