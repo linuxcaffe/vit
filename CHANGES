@@ -1,3 +1,7 @@
+ Mon Oct 26 2026 - act on tasks by UUID: IDs renumbered elsewhere (tw-web, a sync) no longer
+                    redirect d, D, A, m, e, = and the rest to another task; the selection follows
+                    its task across a re-read; %TASKUUID for .vitrc maps
+ Mon Oct 26 2026 - fix: 'vit summary' crashed at start; summary's separator line read as a project
  Mon Oct 26 2026 - no shell between vit and task: quotes, parentheses, apostrophes and * in add,
                     filters and annotations are text; denotate no longer runs $(...) in annotations
  Mon Oct 26 2026 - reads run with rc.hooks=off (a refresh: 1.6 s -> 0.15 s on a real setup)

@@ -90,6 +90,12 @@ a task) and for you to see the output of a command. After :! a 'r' means that
 VIT should reread your list of tasks. This should be used when your external
 command changes the task data.
 
+In the command, %TASKID is the selected task's ID and %TASKUUID its UUID;
+%TASKARGS is the current report and filter. IDs change when the task data
+changes elsewhere (another client, a sync), so a map that changes a task is
+safer with %TASKUUID: task accepts a UUID wherever it takes an ID
+(task %TASKUUID modify ..., task _get %TASKUUID.parent).
+
 .TP
 .B map \\\\cn=:!wr tasknote %TASKID<Return>
 When Ctrl + n is pressed, runs the command 'tasknote <ID>', where <ID> is the

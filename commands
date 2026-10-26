@@ -5,6 +5,7 @@
  cmd   m STRING        modify the current task
  cmd   w STRING        wait the current task
  cmd   :![rw] STRING   execute "STRING" in shell. 'r' rereads, 'w' waits
+ cmd   :! ... %TASKUUID  the current task's UUID (%TASKID: its ID, %TASKARGS: the report)
  cmd   t               prepend the command prompt with ":!rw task "
  cmd   :s/OLD/NEW/     change OLD to NEW in the current task's description
  cmd   :%s/OLD/NEW/    change OLD to NEW in the current task's description

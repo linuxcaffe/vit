@@ -3,6 +3,8 @@
 
 sub read_report {
   my ($mode) = @_;
+  my $prev_uuid = $report2uuid[$task_selected_idx];
+  my $prev_offset = $task_selected_idx - &first_line_of($prev_uuid);
   &inner_read_report($mode);
   if ( $prev_ch eq 'd' && $error_msg =~ /Error: task .*: no matches/ ) {
     # take care of marking last done...
@@ -10,6 +12,43 @@ sub read_report {
   }
   if ( $current_command eq 'summary' ) {
     &get_num_tasks();
+  }
+  if ( $mode eq 'refresh' ) {
+    &follow_selection($prev_uuid, $prev_offset);
+  }
+}
+
+#------------------------------------------------------------------
+# first_line_of UUID -- the first report line of that task (-1: none)
+
+sub first_line_of {
+  my ($uuid) = @_;
+  return -1 if ! defined $uuid;
+  for my $i (0 .. $#report2uuid) {
+    return $i if defined $report2uuid[$i] && $report2uuid[$i] eq $uuid;
+  }
+  return -1;
+}
+
+#------------------------------------------------------------------
+# follow_selection UUID OFFSET -- after a re-read, select the same task (and
+# the same annotation line of it) wherever it moved to. A task that's gone
+# leaves the selection where it was.
+
+sub follow_selection {
+  my ($uuid, $offset) = @_;
+  my $first = &first_line_of($uuid);
+  return if $first < 0;
+  my $i = $first + ( $offset > 0 ? $offset : 0 );
+  if ( $i > $#report2uuid || ! defined $report2uuid[$i] || $report2uuid[$i] ne $uuid ) {
+    $i = $first;
+  }
+  $task_selected_idx = $i;
+  if ( $task_selected_idx < $display_start_idx ) {
+    $display_start_idx = $task_selected_idx;
+  }
+  if ( $task_selected_idx >= $display_start_idx + $REPORT_LINES ) {
+    $display_start_idx = $task_selected_idx - $REPORT_LINES + 1;
   }
 }
 
@@ -22,6 +61,7 @@ sub inner_read_report {
   my $args;
   my @prev_num_tasks = $num_tasks;
   my @prev_report2taskid = @report2taskid;
+  my @prev_report2uuid = @report2uuid;
   my @prev_report_tokens = @report_tokens;
   my @prev_report_lines = @report_lines;
   my @prev_report_colors_fg = @report_colors_fg;
@@ -34,6 +74,7 @@ sub inner_read_report {
   $prev_display_start_idx = $display_start_idx;
   $prev_task_selected_idx = $task_selected_idx;
   @report2taskid = ();
+  @report2uuid = ();
   @report_tokens = ();
   @report_lines = ();
   @report_colors_fg = ();
@@ -127,6 +168,8 @@ sub inner_read_report {
     chop;
     $_ = &decode_utf8($_);
     if ( $_ =~ /^\s*$/ ) { next; }
+    # a header's separator (2.6.2's summary prints one, colors or not)
+    if ( $_ =~ /^(\x1b.*?m)*[\s-]*-[\s-]*(\x1b.*?m)*$/ ) { next; }
     if ( $_ =~ /^(\d+) tasks?$/ ||
          $_ =~ /^\x1b.*?m(\d+) tasks?\x1b\[0m$/ ||
          $_ =~ /^\d+ tasks?, (\d+) shown$/ ||
@@ -151,7 +194,7 @@ sub inner_read_report {
       &audit("inner_read_report: report2taskid[$i]=$1, taskid2report[$1]=$i")
     } else {
       $report2taskid[$i] = $prev_id;
-      audit("inner_read_report: report2taskid[$i]=$prev_id")
+      &audit("inner_read_report: report2taskid[$i]=" . ($prev_id // "none"))
     }
     $prev_id = $report2taskid[$i];
     $i++;
@@ -175,6 +218,10 @@ sub inner_read_report {
     if ( $task_selected_idx > $#report_tokens ) {
       $task_selected_idx = $#report_tokens;
     }
+    # IDs shift when the data changes behind vit (tw-web, a sync): keep each
+    # line's UUID, and act on that
+    my %uuid = &task_uuids(grep { defined } @report2taskid);
+    @report2uuid = map { defined $_ ? $uuid{$_} : undef } @report2taskid;
   } else {
     $error_msg = "Error: task $current_command: no matches";
     $current_command = $prev_command;
@@ -188,6 +235,7 @@ sub inner_read_report {
     @report_colors_bg = @prev_report_colors_bg;
     @report_attrs = @prev_report_attrs;
     @report2taskid = @prev_report2taskid;
+    @report2uuid = @prev_report2uuid;
     $convergence = $prev_convergence;
     return;
   }

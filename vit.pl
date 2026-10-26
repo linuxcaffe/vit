@@ -83,6 +83,7 @@ our @report_colors_fg = ();
 our @report_colors_bg = ();
 our @report_attrs = ();
 our @report2taskid = ();
+our @report2uuid = ();   # each line's task, by UUID: writes use it (IDs shift)
 our $search_direction = 1;
 our $search_pat = undef;
 our $selection_attrs = '';

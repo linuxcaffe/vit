@@ -62,7 +62,8 @@ sub getch_loop {
       }
 
       if ( $ch eq "e" ) {
-        &shell_exec([$task, $report2taskid[$task_selected_idx], 'edit'],'wait');
+        my $uuid = &selected_uuid() // last CASE;
+        &shell_exec([$task, $uuid, 'edit'],'wait');
         $reread_needed = 1;
         last CASE;
       }
@@ -225,7 +226,8 @@ sub getch_loop {
           $current_command = "ls project:$p";
           $reread_needed = 1;
         } else {
-          &shell_exec([$task, $report2taskid[$task_selected_idx], 'information'],'forcewait');
+          my $uuid = &selected_uuid() // last CASE;
+          &shell_exec([$task, $uuid, 'information'],'forcewait');
         }
         last CASE;
       }

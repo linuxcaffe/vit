@@ -86,8 +86,8 @@ sub task_version {
 
 sub task_info {
   my $n = $_[0];
-  my $id = $report2taskid[$task_selected_idx];
-  *IN = &task_open({ read => 1, err => 'merge' }, $id, 'information');
+  my $uuid = $report2uuid[$task_selected_idx] // return '';
+  *IN = &task_open({ read => 1, err => 'merge' }, $uuid, 'information');
   while(<IN>) {
     chop;
     $_ =~ s/\x1b.*?m//g; # decolorize

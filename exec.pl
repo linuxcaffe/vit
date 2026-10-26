@@ -110,6 +110,39 @@ sub task_check {
 }
 
 #------------------------------------------------------------------
+# task_uuids IDS -- { id => uuid } for the IDs that exist now, in one call
+
+sub task_uuids {
+  my %seen;
+  my @ids = grep { /^\d+$/ && $_ > 0 && !$seen{$_}++ } @_;
+  return () if ! @ids;
+  my $fh = &task_open({ read => 1 }, '_get', map { "$_.uuid" } @ids);
+  my $line = <$fh>;
+  &task_close($fh);
+  return () if ! defined $line;
+  chomp $line;
+  my @uuids = split(/ /, $line, -1);
+  my %map;
+  for my $i (0 .. $#ids) {
+    $map{$ids[$i]} = $uuids[$i] if defined $uuids[$i] && $uuids[$i] ne '';
+  }
+  return %map;
+}
+
+#------------------------------------------------------------------
+# selected_uuid -- the selected line's task, or undef (and an error shown)
+
+sub selected_uuid {
+  my $uuid = $report2uuid[$task_selected_idx];
+  if ( ! defined $uuid ) {
+    $error_msg = "No task on this line.";
+    &draw_error_msg();
+    return undef;
+  }
+  return $uuid;
+}
+
+#------------------------------------------------------------------
 # task_exec ARGS -- a write, output captured; returns ($status, $text).
 # A hook that needs a terminal (tw_needs_pty, TW_INTERACTIVE_REQUIRED) gets
 # the same command again in the terminal, if the user says so. Commands a

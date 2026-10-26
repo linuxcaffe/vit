@@ -1,4 +1,3 @@
 # Tests that reproduce a known bug (tw:docs/vit-plan.md, "What needs work").
 # Remove a line when its fix makes the test pass.
 colon_regex      bug 4: : text used as a regex
-stale_id         bug 1: acts on IDs read earlier

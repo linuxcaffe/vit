@@ -65,7 +65,9 @@ tests/run.sh stale_id      # one test
    recurring instance alone), `TW_NOINTERACT=1 TW_CLIENT=vit TW_PREFLIGHT_CMD TW_SPOOL_DIR`; a
    `tw_needs_pty` / `TW_INTERACTIVE_REQUIRED` answer offers the command again in the terminal, where
    `shell_exec` clears the no-terminal variables (`~/dev/awesome-taskwarrior/CONVENTIONS.md`).
-   **Not yet:** writes by UUID (phase 2; IDs shift when tw-web or a gittw pull changes the data).
+   **Writes by UUID** (`selected_uuid`, from `@report2uuid`, mapped at each read with one `_get`):
+   IDs shift when tw-web or a gittw pull changes the data. After a re-read the selection follows the
+   task (`follow_selection`). Messages may still show the ID; arguments never use it.
 4. **User text is never a regex** unless it's a search (`/`, `?`), and then a bad one is an error message.
 5. `$SIG{__WARN__}` makes any Perl warning fatal, on purpose. Keep the code warning-free.
 
