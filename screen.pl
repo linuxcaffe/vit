@@ -38,7 +38,9 @@ sub draw_screen {
     }
     $str = "$tasks_completed tasks completed";
   }
-  &draw_header_line(1,$convergence,$str);
+  my $lhs = $context_name ne '' ? "context: $context_name" : '';
+  $lhs .= '  ' if $lhs ne '' && $convergence ne '';
+  &draw_header_line(1,$lhs . $convergence,$str);
   &set_attroff($header_win,$header_attrs);
   $header_win->attroff(COLOR_PAIR($COLOR_HEADER));
 

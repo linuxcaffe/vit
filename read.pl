@@ -162,7 +162,7 @@ sub inner_read_report {
     close(IN);
   }
 
-  *IN = &task_open({ read => 1, err => 'null' }, "rc.defaultwidth=$REPORT_COLS", 'rc.defaultheight=0',
+  *IN = &task_open({ read => 1, ui => 1, err => 'null' }, "rc.defaultwidth=$REPORT_COLS", 'rc.defaultheight=0',
                    'rc._forcecolor=on', &split_args($current_command));
   my $i = 0;
   my $prev_id;
@@ -203,6 +203,11 @@ sub inner_read_report {
   }
   close(IN);
 
+  # IDs shift when the data changes behind vit (tw-web, a sync): keep each
+  # line's UUID, and act on that. The context comes in the same call.
+  my ($context, %uuid) = &task_uuids(grep { defined } @report2taskid);
+  $context_name = $context;
+
   if ( $#report_tokens > -1 ) {
     # TODO: this code is quite hard to understand; should probably be rewritten
     #       or at least needs explanation of what is happening here. [BaZo]
@@ -221,9 +226,6 @@ sub inner_read_report {
     if ( $task_selected_idx > $#report_tokens ) {
       $task_selected_idx = $#report_tokens;
     }
-    # IDs shift when the data changes behind vit (tw-web, a sync): keep each
-    # line's UUID, and act on that
-    my %uuid = &task_uuids(grep { defined } @report2taskid);
     @report2uuid = map { defined $_ ? $uuid{$_} : undef } @report2taskid;
   } else {
     $error_msg = "Error: task $current_command: no matches";

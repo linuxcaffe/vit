@@ -6,7 +6,9 @@
  cmd   w STRING        wait the current task
  cmd   :![rw] STRING   execute "STRING" in shell. 'r' rereads, 'w' waits
  cmd   :! ... %TASKUUID  the current task's UUID (%TASKID: its ID, %TASKARGS: the report)
- cmd   t               prepend the command prompt with ":!rw task "
+ cmd   t               prepend the command prompt with ":!rw tw " (":!rw task " without tw)
+ cmd   @               context: a "tw @" prompt (cmx, @+, @-, @0, @@), or "task context " without tw
+ cmd   :WORD [ARGS]    a tw command wrapper (ann, deps, checkup, ...) on the current task
  cmd   :s/OLD/NEW/     change OLD to NEW in the current task's description
  cmd   :%s/OLD/NEW/    change OLD to NEW in the current task's description
  cmd   D               denotate if over annotation, delete task if on first line

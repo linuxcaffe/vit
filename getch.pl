@@ -63,7 +63,7 @@ sub getch_loop {
 
       if ( $ch eq "e" ) {
         my $uuid = &selected_uuid() // last CASE;
-        &shell_exec([$task, $uuid, 'edit'],'wait');
+        &shell_exec([&ui(), $uuid, 'edit'],'wait');
         $reread_needed = 1;
         last CASE;
       }
@@ -180,7 +180,7 @@ sub getch_loop {
         }
         my $majmin = &task_version('major.minor');
         if ( $majmin >= 2.3 ) {
-          &shell_exec([$task, 'sync'],'wait');
+          &shell_exec([&ui(), 'sync'],'wait');
           $reread_needed = 1;
         }
         else {
@@ -191,7 +191,14 @@ sub getch_loop {
       }
 
       if ( $ch eq 't' ) {
-        &ungetstr(':!rw task ');
+        &ungetstr(':!rw ' . &ui() . ' ');
+        last CASE;
+      }
+
+      if ( $ch eq '@' ) {
+        # context, through tw when it's installed (cmx and all: what's typed
+        # goes to tw unchanged), else task context
+        &ungetstr( &on_path('tw') ? ':!r tw @' : ':!r task context ' );
         last CASE;
       }
 
@@ -201,7 +208,7 @@ sub getch_loop {
       }
 
       if ( $ch eq 'u' ) {
-        &shell_exec([$task, 'undo'],'wait');
+        &shell_exec([&ui(), 'undo'],'wait');
         $reread_needed = 1;
         last CASE;
       }
@@ -237,7 +244,7 @@ sub getch_loop {
           $reread_needed = 1;
         } else {
           my $uuid = &selected_uuid() // last CASE;
-          &shell_exec([$task, $uuid, 'information'],'forcewait');
+          &shell_exec([&ui(), $uuid, 'information'],'forcewait');
         }
         last CASE;
       }

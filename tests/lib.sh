@@ -113,3 +113,13 @@ hook() {
   sed -i 's/^hooks=off/hooks=on/' "$TASKRC"
   grep -q '^hooks.location=' "$TASKRC" || echo "hooks.location=$HOME/hooks" >> "$TASKRC"
 }
+
+# fake_tw — a tw on vit's PATH that logs each call (one line, "$*") to $T/tw.log and runs task
+fake_tw() {
+  fake_cmd tw <<FAKE
+#!/bin/sh
+printf '%s\n' "\$*" >> "$T/tw.log"
+exec task "\$@"
+FAKE
+  : > "$T/tw.log"
+}

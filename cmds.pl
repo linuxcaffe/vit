@@ -153,22 +153,22 @@ sub task_done {
 #------------------------------------------------------------------
 
 sub task_filter {
-  my ($c, $f);
-  if ( $current_command =~ /(.*?)\s+(.*)/ ) {
-    ($c,$f) = ($1,$2);
-  } else {
-    $c = $current_command;
-    $f = '';
-  }
+  # the report word wherever it is (tw passes 'vit +home next'); the rest is
+  # the filter. No report word: the default command with a filter.
+  my @w = &split_args($current_command);
+  my %is_report = map { $_ => 1 } @report_types;
+  my ($r) = grep { $is_report{$w[$_]} } 0 .. $#w;
+  my $c = defined $r ? $w[$r] : '';
+  my $f = &quote_args(map { $w[$_] } grep { ! defined $r || $_ != $r } 0 .. $#w);
   my $str = &prompt_str("Filter: $f");
   if ( $str eq '' ) {
     &draw_prompt_line('');
-    $current_command = $c;
+    $current_command = $c ne '' ? $c : $default_command;
     if ( $f ne '' ) { $reread_needed = 1; }
     return;
   }
   $prev_command = $current_command;
-  $current_command = "$c $str";
+  $current_command = $c ne '' ? "$c $str" : $str;
   $reread_needed = 1;
 }
 
@@ -178,7 +178,7 @@ sub task_modify {
   my @args = @_;
   my $id = $report2taskid[$task_selected_idx];
   my $uuid = &selected_uuid() // return;
-  &shell_exec([$task, $uuid, 'modify', @args],'wait');
+  &shell_exec([&ui(), $uuid, 'modify', @args],'wait');
   $reread_needed = 1;
 }
 

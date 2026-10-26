@@ -1,3 +1,9 @@
+ Mon Oct 26 2026 - with tw installed, vit uses it for the report, writes and terminal commands (tw's
+                    shortcuts, contexts, themes and wrappers apply); without it, task as before
+ Mon Oct 26 2026 - the header shows the active context; @ opens a tw @ (or task context) prompt
+ Mon Oct 26 2026 - tw's command wrappers (ann, deps, checkup, ...) as : commands on the current task
+ Mon Oct 26 2026 - t opens a tw prompt when tw is installed; f finds the report word wherever it is
+                    (tw passes 'vit +home next')
  Mon Oct 26 2026 - a missing Perl module (Curses, Try::Tiny, Text::CharWidth) gets a plain message
                     naming it and how to install it, instead of Perl's @INC dump
  Mon Oct 26 2026 - This is VIT 1.4.0: the first awesome-taskwarrior fleet release (tw -I vit)

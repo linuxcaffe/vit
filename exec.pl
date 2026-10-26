@@ -42,6 +42,7 @@ sub quote_args {
 #   write => 1    a write: rc.recurrence.confirmation=no, the TW_* contract
 #   err => 'merge' (stderr into the output) or 'null' (default)
 #   bare => 1     no rc. overrides at all (task --version takes none)
+#   ui => 1       through ui() (tw when installed): the report on screen
 # stdin is /dev/null, so task never waits for an answer.
 
 sub task_open {
@@ -52,7 +53,8 @@ sub task_open {
     push @rc, 'rc.hooks=off' if $opt->{read};
     push @rc, 'rc.recurrence.confirmation=no' if $opt->{write};
   }
-  my @argv = ($task, @rc, @args);
+  my $prog = ( $opt->{ui} || $opt->{write} ) ? &ui() : $task;
+  my @argv = ($prog, @rc, @args);
   unshift @argv, 'timeout', $task_timeout if $timeout_bin;
   &audit("EXEC " . quote_args(@argv));
   my %env = ();
@@ -122,23 +124,23 @@ sub task_get {
 }
 
 #------------------------------------------------------------------
-# task_uuids IDS -- { id => uuid } for the IDs that exist now, in one call
+# task_uuids IDS -- (context, { id => uuid } for the IDs that exist now), in
+# one call: rc.context rides along with the UUIDs
 
 sub task_uuids {
   my %seen;
   my @ids = grep { /^\d+$/ && $_ > 0 && !$seen{$_}++ } @_;
-  return () if ! @ids;
-  my $fh = &task_open({ read => 1 }, '_get', map { "$_.uuid" } @ids);
+  my $fh = &task_open({ read => 1 }, '_get', 'rc.context', map { "$_.uuid" } @ids);
   my $line = <$fh>;
   &task_close($fh);
-  return () if ! defined $line;
+  return ('') if ! defined $line;
   chomp $line;
-  my @uuids = split(/ /, $line, -1);
+  my ($context, @uuids) = split(/ /, $line, -1);
   my %map;
   for my $i (0 .. $#ids) {
     $map{$ids[$i]} = $uuids[$i] if defined $uuids[$i] && $uuids[$i] ne '';
   }
-  return %map;
+  return ($context // '', %map);
 }
 
 #------------------------------------------------------------------
@@ -180,7 +182,7 @@ sub task_exec {
   }
   if ( $es != 0 && $needs_pty ) {
     if ( &prompt_y("A hook needs a terminal for 'task " . quote_args(@args) . "'. Run it here? ") ) {
-      $es = &shell_exec([$task, @args], 'forcewait');
+      $es = &shell_exec([&ui(), @args], 'forcewait');
       $result = ( $es == 0 ) ? "Ran in the terminal." : "Failed in the terminal.";
     } else {
       $result = "Not done: a hook needs a terminal for it.";

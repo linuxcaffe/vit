@@ -79,7 +79,7 @@ sub init_task_env {
     chop $cli_args;
     $default_command = $cli_args;
   }
-  *IN = &task_open({ read => 1, err => 'merge' }, 'rc._forcecolor=on', 'rc.verbose=on',
+  *IN = &task_open({ read => 1, ui => 1, err => 'merge' }, 'rc._forcecolor=on', 'rc.verbose=on',
                    &split_args($default_command));
   while(<IN>) {
     chop;

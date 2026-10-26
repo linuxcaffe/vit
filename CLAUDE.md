@@ -75,9 +75,16 @@ tests/run.sh stale_id      # one test
    task (`follow_selection`). Messages may still show the ID; arguments never use it.
 4. **User text is never a regex** except in a search (`/`, `?`), where a bad pattern is matched literally.
    `:REPORT` matches report names by `eq`/prefix, `:h TEXT` by `index`, case-insensitive.
-5. **Fleet fit:** `P` offers `uda.priority.values` as the taskrc defines them (read at start); `s` runs
+5. **tw is harnessed, never duplicated, never required** (plan: "Harnessing tw"). `ui()` is `tw` when
+   it's on PATH (asked each time), else `task`: the report (`task_open` `ui`), writes and terminal
+   commands use it; bookkeeping reads (`stats`, `projects`, `tags`, `_get`) always use `$task` (a tw call
+   costs ~0.2 s). vit keeps no copy of tw's grammar: `@` and `t` hand typed text to `tw`; wrapper keywords
+   come from tw's `.tw_wrappers` (`tw_wrappers`). Tests run on a closed PATH without tw; `fake_tw` adds
+   one that logs and runs task. `TW_CLIENT=vit` (set for writes and terminal commands) is what keeps tw's
+   `tw.ui=vit` mode from opening a vit inside vit.
+6. **Fleet fit:** `P` offers `uda.priority.values` as the taskrc defines them (read at start); `s` runs
    `gittw sync` when gittw is on PATH, with `TW_TASK_DIR` from task's `data.location`, else `task sync`.
-6. `$SIG{__WARN__}` makes any Perl warning fatal, on purpose. Keep the code warning-free.
+7. `$SIG{__WARN__}` makes any Perl warning fatal, on purpose. Keep the code warning-free.
 
 ## Releasing (fleet)
 

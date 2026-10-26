@@ -94,7 +94,7 @@ sub prompt_str {
   # determine mode from prompt text
   if ( $prompt eq ':' ) {
     $mode = 'cmd';
-    @match_types = @report_types;
+    @match_types = (@report_types, &tw_wrappers());
   } else {
     $mode = lc($prompt);
     $mode =~ s/:.*$//;

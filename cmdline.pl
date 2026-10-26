@@ -68,6 +68,14 @@ sub cmd_line {
       return;
     }
   }
+  # tw's command wrappers (ann, deps, checkup, ...) on the selected task
+  my @w = &split_args($str);
+  if ( @w && grep { $_ eq $w[0] } &tw_wrappers() ) {
+    my $uuid = &selected_uuid() // return;
+    &shell_exec(['tw', $uuid, @w],'wait');
+    $reread_needed = 1;
+    return;
+  }
   $error_msg = "$str: command not found";
   &draw_error_msg();
   return;

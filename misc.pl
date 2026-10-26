@@ -92,6 +92,34 @@ sub on_path {
 }
 
 #------------------------------------------------------------------
+# ui -- the program for what the user sees and does (the report, writes,
+# terminal commands): tw when it's installed, so its shortcuts, contexts,
+# themes and wrappers apply; task otherwise. vit's own bookkeeping reads
+# (stats, projects, tags, _get) always use $task. Asked each time: cheap.
+
+sub ui {
+  return &on_path('tw') ? 'tw' : $task;
+}
+
+#------------------------------------------------------------------
+# tw_wrappers -- tw's command wrapper keywords (ann, deps, ...), from tw's own
+# list; none without tw
+
+sub tw_wrappers {
+  return () if ! &on_path('tw');
+  my $file = ( $ENV{'TW_TASK_DIR'} || "$ENV{'HOME'}/.task" ) . '/config/.tw_wrappers';
+  open(my $in, '<', $file) or return ();
+  my @names;
+  while ( my $line = <$in> ) {
+    chomp $line;
+    my ($name, $script, $desc, $type) = split(/\|/, $line);
+    push @names, $name if defined $type && $type eq 'command' && $name ne '';
+  }
+  close($in);
+  return @names;
+}
+
+#------------------------------------------------------------------
 
 sub task_info {
   my $n = $_[0];

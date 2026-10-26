@@ -25,6 +25,7 @@ any columns, your taskrc's colors: nothing to configure twice.
   on an annotation line), `m` modify, `P` priority, `p` project, `T` tags, `w` wait, `e` edit, `u` undo,
   `=` or Enter for its information
 - **`s`** syncs: `gittw sync` when gittw is installed, else `task sync`
+- **`@`** changes the context (the header shows the active one)
 - **`:h`** shows all the keys; `:h TEXT` the lines containing TEXT
 
 ## In the fleet
@@ -40,7 +41,27 @@ any columns, your taskrc's colors: nothing to configure twice.
   (`TW_NOINTERACT`, `TW_CLIENT=vit`); one that needs a terminal (`tw_needs_pty`) is offered one, and
   commands a hook spools are offered after the change.
 - **Priority:** `P` offers your `uda.priority.values`, one key each.
-- **Context:** vit follows Taskwarrior's context, as `task` does.
+- **Context:** vit follows Taskwarrior's context, as `task` does, and shows it in the header.
+
+## With tw (awesome-taskwarrior)
+
+vit uses `tw` when it's installed, and is plain `task` without it (tw is never a dependency).
+What you see and do goes through `tw`: the report, your changes, the commands vit runs in the
+terminal. So tw's own syntax works in `:REPORT FILTER` and `f` (`:@_ next` without context,
+`:@:work ls` with a one-off context), report themes (theme-switch) show, and:
+
+- **`@`** opens a `tw @` prompt: what you type goes to tw unchanged (`work`, `+ home`, `- home`,
+  `0`, `@`).
+- **`t`** opens a `tw ` prompt: dot shortcuts (`tw .`), one-shot contexts and wrappers work there.
+- **`:ann`, `:deps`, `:checkup`, `:nag`, …**: tw's command wrappers run on the selected task
+  (`tw <uuid> ann`), read from tw's own list, so new fleet apps appear by themselves. A report name
+  wins a clash.
+- **Reports open in vit:** with `tw.ui=vit` in a station's `local.rc`, a `tw` report on a
+  terminal opens in vit (a bare `tw` too); `tw -V` opens one once. Never into a pipe, never from
+  inside vit.
+
+vit's own bookkeeping (counts, project and tag lists, UUIDs) stays on `task`: a `tw` call costs
+about 0.2 s.
 
 ## Configuration: ~/.vitrc
 
