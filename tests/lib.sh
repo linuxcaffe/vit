@@ -36,6 +36,8 @@ EOF
 
 teardown() {
   tmux -L "$TMUX_SOCK" kill-server 2>/dev/null || true
+  # kill-server leaves the socket file behind: one per test run otherwise
+  rm -f "${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)/$TMUX_SOCK"
   rm -rf "$T"
 }
 trap teardown EXIT
