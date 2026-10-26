@@ -11,6 +11,7 @@ check "ran" wait_for "Press return"; keys Enter; settle
 u=$(task rc.verbose=nothing _get 2.uuid 2>/dev/null)
 check "tw <uuid> ann -l" grep -qx "$u ann -l" "$T/tw.log"
 prompt : "vt"
-check "a report name stays a report" bash -c "! grep -q ' vt\$' <(grep -v '^rc' '$T/tw.log')"
+check "a report name stays a report" bash -c "! grep -q '^$u vt' '$T/tw.log'"
+check "and ran as one" grep -q '^vt rc\.' "$T/tw.log"
 prompt : "theme-switch"
 check "pre-exec wrappers aren't commands" wait_for "command not found"

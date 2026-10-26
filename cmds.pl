@@ -154,7 +154,8 @@ sub task_done {
 
 sub task_filter {
   # the report word wherever it is (tw passes 'vit +home next'); the rest is
-  # the filter. No report word: the default command with a filter.
+  # the filter, kept in front (tw's @_ and @: name work only first). No report
+  # word: the default command with a filter.
   my @w = &split_args($current_command);
   my %is_report = map { $_ => 1 } @report_types;
   my ($r) = grep { $is_report{$w[$_]} } 0 .. $#w;
@@ -168,7 +169,7 @@ sub task_filter {
     return;
   }
   $prev_command = $current_command;
-  $current_command = $c ne '' ? "$c $str" : $str;
+  $current_command = $c ne '' ? "$str $c" : $str;
   $reread_needed = 1;
 }
 

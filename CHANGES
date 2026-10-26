@@ -1,3 +1,6 @@
+ Mon Oct 26 2026 - the header shows the context the report really ran with (an override, typed or
+                    tw's @_ / @: name, as task reports it); : takes a report word anywhere (:+home next,
+                    :@_ next, :@: work ls); in the report sent to tw the user's words come first
  Mon Oct 26 2026 - with tw installed, vit uses it for the report, writes and terminal commands (tw's
                     shortcuts, contexts, themes and wrappers apply); without it, task as before
  Mon Oct 26 2026 - the header shows the active context; @ opens a tw @ (or task context) prompt

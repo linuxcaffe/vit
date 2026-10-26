@@ -79,8 +79,8 @@ sub init_task_env {
     chop $cli_args;
     $default_command = $cli_args;
   }
-  *IN = &task_open({ read => 1, ui => 1, err => 'merge' }, 'rc._forcecolor=on', 'rc.verbose=on',
-                   &split_args($default_command));
+  *IN = &task_open({ read => 1, ui => 1, err => 'merge' }, &split_args($default_command),
+                   'rc._forcecolor=on', 'rc.verbose=on');
   while(<IN>) {
     chop;
     if ( $_ =~ /ID/ || ($default_command eq 'summary' && $_ =~ /Project/) ) {

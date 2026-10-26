@@ -114,11 +114,13 @@ hook() {
   grep -q '^hooks.location=' "$TASKRC" || echo "hooks.location=$HOME/hooks" >> "$TASKRC"
 }
 
-# fake_tw — a tw on vit's PATH that logs each call (one line, "$*") to $T/tw.log and runs task
+# fake_tw — a tw on vit's PATH that logs each call (one line, "$*") to $T/tw.log and runs task;
+# like tw, a first argument @_ means no context (rc.context=none)
 fake_tw() {
   fake_cmd tw <<FAKE
 #!/bin/sh
 printf '%s\n' "\$*" >> "$T/tw.log"
+if [ "\$1" = "@_" ]; then shift; exec task rc.context=none "\$@"; fi
 exec task "\$@"
 FAKE
   : > "$T/tw.log"

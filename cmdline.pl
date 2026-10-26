@@ -68,8 +68,18 @@ sub cmd_line {
       return;
     }
   }
-  # tw's command wrappers (ann, deps, checkup, ...) on the selected task
+  # a report name anywhere: a filter before the report (+home next), or tw's
+  # syntax in front (@_ next, @: work ls)
   my @w = &split_args($str);
+  my %is_report = map { $_ => 1 } @report_types;
+  if ( grep { $is_report{$_} } @w ) {
+    $prev_command = $current_command;
+    $current_command = $str;
+    &read_report('init');
+    &draw_screen();
+    return;
+  }
+  # tw's command wrappers (ann, deps, checkup, ...) on the selected task
   if ( @w && grep { $_ eq $w[0] } &tw_wrappers() ) {
     my $uuid = &selected_uuid() // return;
     &shell_exec(['tw', $uuid, @w],'wait');

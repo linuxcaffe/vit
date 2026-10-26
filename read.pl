@@ -162,8 +162,11 @@ sub inner_read_report {
     close(IN);
   }
 
-  *IN = &task_open({ read => 1, ui => 1, err => 'null' }, "rc.defaultwidth=$REPORT_COLS", 'rc.defaultheight=0',
-                   'rc._forcecolor=on', &split_args($current_command));
+  # stderr kept aside: task says there when the context was overridden
+  # (rc.context=… typed, or tw's @_ and @: name), which the header shows
+  my $errf = File::Temp->new(TEMPLATE => 'vit-err.XXXXXX', TMPDIR => 1);
+  *IN = &task_open({ read => 1, ui => 1, errfile => $errf->filename }, &split_args($current_command),
+                   "rc.defaultwidth=$REPORT_COLS", 'rc.defaultheight=0', 'rc._forcecolor=on');
   my $i = 0;
   my $prev_id;
   while(<IN>) {
@@ -207,6 +210,15 @@ sub inner_read_report {
   # line's UUID, and act on that. The context comes in the same call.
   my ($context, %uuid) = &task_uuids(grep { defined } @report2taskid);
   $context_name = $context;
+  if ( open(my $err, '<', $errf->filename) ) {
+    while ( my $line = <$err> ) {
+      $line =~ s/\x1b.*?m//g;   # the report runs with color on
+      if ( $line =~ /^Configuration override rc\.context[:=](\S*)/ ) {
+        $context_name = ( $1 eq 'none' ) ? '' : $1;
+      }
+    }
+    close($err);
+  }
 
   if ( $#report_tokens > -1 ) {
     # TODO: this code is quite hard to understand; should probably be rewritten

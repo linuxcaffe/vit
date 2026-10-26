@@ -41,8 +41,10 @@ sub quote_args {
 #   read => 1     a read: rc.hooks=off (no on-launch/on-exit hooks)
 #   write => 1    a write: rc.recurrence.confirmation=no, the TW_* contract
 #   err => 'merge' (stderr into the output) or 'null' (default)
+#   errfile => PATH   stderr to that file instead
 #   bare => 1     no rc. overrides at all (task --version takes none)
-#   ui => 1       through ui() (tw when installed): the report on screen
+#   ui => 1       through ui() (tw when installed): the report on screen;
+#                 ARGS must then put the user's words before any rc. override
 # stdin is /dev/null, so task never waits for an answer.
 
 sub task_open {
@@ -54,7 +56,9 @@ sub task_open {
     push @rc, 'rc.recurrence.confirmation=no' if $opt->{write};
   }
   my $prog = ( $opt->{ui} || $opt->{write} ) ? &ui() : $task;
-  my @argv = ($prog, @rc, @args);
+  # The report through tw: the user's words first, rc. overrides after (task
+  # takes rc. anywhere; tw reads its shortcuts, @_ and @: name, only first)
+  my @argv = $opt->{ui} ? ($prog, @args, @rc) : ($prog, @rc, @args);
   unshift @argv, 'timeout', $task_timeout if $timeout_bin;
   &audit("EXEC " . quote_args(@argv));
   my %env = ();
@@ -72,7 +76,9 @@ sub task_open {
     $SIG{__WARN__} = 'DEFAULT';
     @ENV{keys %env} = values %env;
     open(STDIN, '<', '/dev/null');
-    if ( ($opt->{err} || 'null') eq 'merge' ) {
+    if ( $opt->{errfile} ) {
+      open(STDERR, '>', $opt->{errfile});
+    } elsif ( ($opt->{err} || 'null') eq 'merge' ) {
       open(STDERR, '>&', \*STDOUT);
     } else {
       open(STDERR, '>', '/dev/null');

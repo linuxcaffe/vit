@@ -48,7 +48,7 @@ any columns, your taskrc's colors: nothing to configure twice.
 vit uses `tw` when it's installed, and is plain `task` without it (tw is never a dependency).
 What you see and do goes through `tw`: the report, your changes, the commands vit runs in the
 terminal. So tw's own syntax works in `:REPORT FILTER` and `f` (`:@_ next` without context,
-`:@:work ls` with a one-off context), report themes (theme-switch) show, and:
+`:@: work ls` with a one-off context), report themes (theme-switch) show, and:
 
 - **`@`** opens a `tw @` prompt: what you type goes to tw unchanged (`work`, `+ home`, `- home`,
   `0`, `@`).
