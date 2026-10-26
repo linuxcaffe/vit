@@ -55,6 +55,19 @@ tests/run.sh stale_id      # one test
   `fake_cmd NAME` puts a fake first on it.
 - The pre-commit hook (`.tools/pre-commit`) runs the suite. Install once per clone:
   `ln -sf ../../.tools/pre-commit .git/hooks/pre-commit`.
+- **Against the real setup, safely** (what the throwaway database can't show: your reports, colours,
+  contexts, hooks, `tw` and its wrappers): copy it into a scratch HOME and cut it off from the remotes.
+  ```bash
+  S=<scratchpad>/real; mkdir -p $S/home && cp -a ~/.task $S/home/.task && cp ~/.taskrc $S/home/
+  for r in $(git -C $S/home/.task remote); do git -C $S/home/.task remote remove $r; done
+  E="env -u TASKRC -u TW_TASK_DIR -u TW_CLIENT -u TW_NOINTERACT HOME=$S/home PATH=<bin>:$S/home/.task/scripts:/usr/local/bin:/usr/bin:/bin"
+  tmux -L <name> new-session -d -x 150 -y 40 -c $S "$E vit next; sleep 60"   # then send-keys / capture-pane
+  ```
+  `<bin>` holds what you're testing first: `vit` → `build/vit`, and the dev `tw` as a script running
+  `python3 ~/dev/awesome-taskwarrior/tw "$@"` (the repo's `tw` isn't executable; a symlink falls through
+  to the installed one). Hooks run on writes in the copy (that's the point); its git has no remotes, so
+  gittw can't push. Delete the copy afterwards. (tw-web's CLAUDE.md lists a planned `taskutil fixture`
+  for this.)
 - Interactive debugging: `build/vit -audit` logs every `task` call to `$XDG_RUNTIME_DIR/vit/vit_audit.log`
   (`~/.cache/vit/` without it), and says where on exit. The tests set `XDG_RUNTIME_DIR` to their temp dir.
 
