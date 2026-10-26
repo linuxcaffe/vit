@@ -1,0 +1,10 @@
+# Tests that reproduce a known bug (tw:docs/vit-plan.md, "What needs work").
+# Remove a line when its fix makes the test pass.
+add_parens       bug 2: add goes through sh
+add_apostrophe   bug 2
+add_glob         bug 2
+filter_parens    bug 2
+denotate_shell   bug 3: denotate text in double quotes through sh
+colon_regex      bug 4: : text used as a regex
+stale_id         bug 1: acts on IDs read earlier
+read_hooks       bug 5: reads run hooks

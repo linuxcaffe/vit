@@ -2,12 +2,10 @@ CHANGES
 INSTALL
 LICENSE
 MANIFEST
-Makefile.in
 README
 VERSION
 commands
-configure
-install-sh
+build.sh
 taskrc-gtk+
 args.pl
 cmdline.pl

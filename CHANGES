@@ -1,3 +1,4 @@
+ Mon Oct 26 2026 - build.sh replaces configure + Makefile; tmux test suite (tests/)
  Sat Jun 14 2018 - fix "Negative repeat count does nothing" errors (GH#153)
  Sat Jun 24 2017 - introduce feature for adding/removing tags (GH#5)
  Sat Jun 24 2017 - add config option to disable wait prompts (GH#12)

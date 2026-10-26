@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# pre-commit: build vit and run the tmux tests (~15 s); a red run blocks the commit.
+# Install once per clone: ln -sf ../../.tools/pre-commit .git/hooks/pre-commit
+# Bypass a deliberate work-in-progress commit with --no-verify.
+exec "$(git rev-parse --show-toplevel)/tests/run.sh"

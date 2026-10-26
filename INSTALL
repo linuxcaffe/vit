@@ -2,15 +2,16 @@
 Install Instructions for VIT
 ----------------------------
 
-## configure the Makefile...
-./configure
+## the fleet way (planned, vit 1.4.0)...
+tw -I vit
 
-## build the script...
-make
+## by hand...
+./build.sh                               # builds build/vit
+PREFIX=/usr/local ./build.sh             # to read the help from /usr/local/share/vit/commands
+cp build/vit ~/bin/                      # or anywhere on PATH
 
-## install the script...
-make install
+Requires perl with Curses, Try::Tiny, Text::CharWidth
+(Debian/Ubuntu: libcurses-perl libtry-tiny-perl libtext-charwidth-perl).
 
 ## for GTK+ (Gnome) colors...
 add the configuration strings in taskrc-gtk+ to your ~/.taskrc file
-
