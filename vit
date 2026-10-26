@@ -2,12 +2,25 @@
 #
 # VIT - Visual Interactive Taskwarrior
 #
-# 1.4.0
+# 1.4.1
 #
 # Copyright 2012 - 2013, Steve Rader
 # Copyright 2013 - 2018, Scott Kostyshak
 
 use strict;
+
+# The modules a perl may not have: say which and how to get them, before the
+# use lines below would stop with Perl's own message
+BEGIN {
+  my @missing = grep { ! eval "require $_; 1" } qw(Curses Try::Tiny Text::CharWidth);
+  if ( @missing ) {
+    print STDERR "vit: needs the Perl module(s) @missing\n",
+      "  Debian/Ubuntu: sudo apt install libcurses-perl libtry-tiny-perl libtext-charwidth-perl\n",
+      "  elsewhere: cpan @missing\n";
+    exit 1;
+  }
+}
+
 use Curses;
 use Time::HiRes qw(usleep);
 use Try::Tiny;
@@ -85,7 +98,8 @@ our @report_attrs = ();
 our @report2taskid = ();
 our @report2uuid = ();
 our @help_lines = ();
-our @priority_values = ();  # uda.priority.values, read at start (env.pl)   # each line's task, by UUID: writes use it (IDs shift)
+our @priority_values = ();
+our $context_name = '';    # rc.context at the last read (the header shows it)  # uda.priority.values, read at start (env.pl)   # each line's task, by UUID: writes use it (IDs shift)
 our $search_direction = 1;
 our $search_pat = undef;
 our $selection_attrs = '';
@@ -94,7 +108,7 @@ our $tasks_completed = 0;
 our $tasks_pending = 0;
 our $task_selected_idx = 0;
 our $titlebar = 0;
-our $version = '1.4.0';
+our $version = '1.4.1';
 our $REPORT_LINES;
 our $REPORT_COLS;
 
@@ -258,6 +272,24 @@ sub cmd_line {
       &draw_screen();
       return;
     }
+  }
+  # a report name anywhere: a filter before the report (+home next), or tw's
+  # syntax in front (@_ next, @: work ls)
+  my @w = &split_args($str);
+  my %is_report = map { $_ => 1 } @report_types;
+  if ( grep { $is_report{$_} } @w ) {
+    $prev_command = $current_command;
+    $current_command = $str;
+    &read_report('init');
+    &draw_screen();
+    return;
+  }
+  # tw's command wrappers (ann, deps, checkup, ...) on the selected task
+  if ( @w && grep { $_ eq $w[0] } &tw_wrappers() ) {
+    my $uuid = &selected_uuid() // return;
+    &shell_exec(['tw', $uuid, @w],'wait');
+    $reread_needed = 1;
+    return;
   }
   $error_msg = "$str: command not found";
   &draw_error_msg();
@@ -441,22 +473,23 @@ sub task_done {
 #------------------------------------------------------------------
 
 sub task_filter {
-  my ($c, $f);
-  if ( $current_command =~ /(.*?)\s+(.*)/ ) {
-    ($c,$f) = ($1,$2);
-  } else {
-    $c = $current_command;
-    $f = '';
-  }
+  # the report word wherever it is (tw passes 'vit +home next'); the rest is
+  # the filter, kept in front (tw's @_ and @: name work only first). No report
+  # word: the default command with a filter.
+  my @w = &split_args($current_command);
+  my %is_report = map { $_ => 1 } @report_types;
+  my ($r) = grep { $is_report{$w[$_]} } 0 .. $#w;
+  my $c = defined $r ? $w[$r] : '';
+  my $f = &quote_args(map { $w[$_] } grep { ! defined $r || $_ != $r } 0 .. $#w);
   my $str = &prompt_str("Filter: $f");
   if ( $str eq '' ) {
     &draw_prompt_line('');
-    $current_command = $c;
+    $current_command = $c ne '' ? $c : $default_command;
     if ( $f ne '' ) { $reread_needed = 1; }
     return;
   }
   $prev_command = $current_command;
-  $current_command = "$c $str";
+  $current_command = $c ne '' ? "$str $c" : $str;
   $reread_needed = 1;
 }
 
@@ -466,7 +499,7 @@ sub task_modify {
   my @args = @_;
   my $id = $report2taskid[$task_selected_idx];
   my $uuid = &selected_uuid() // return;
-  &shell_exec([$task, $uuid, 'modify', @args],'wait');
+  &shell_exec([&ui(), $uuid, 'modify', @args],'wait');
   $reread_needed = 1;
 }
 
@@ -1152,8 +1185,8 @@ sub init_task_env {
     chop $cli_args;
     $default_command = $cli_args;
   }
-  *IN = &task_open({ read => 1, err => 'merge' }, 'rc._forcecolor=on', 'rc.verbose=on',
-                   &split_args($default_command));
+  *IN = &task_open({ read => 1, ui => 1, err => 'merge' }, &split_args($default_command),
+                   'rc._forcecolor=on', 'rc.verbose=on');
   while(<IN>) {
     chop;
     if ( $_ =~ /ID/ || ($default_command eq 'summary' && $_ =~ /Project/) ) {
@@ -1228,7 +1261,10 @@ sub quote_args {
 #   read => 1     a read: rc.hooks=off (no on-launch/on-exit hooks)
 #   write => 1    a write: rc.recurrence.confirmation=no, the TW_* contract
 #   err => 'merge' (stderr into the output) or 'null' (default)
+#   errfile => PATH   stderr to that file instead
 #   bare => 1     no rc. overrides at all (task --version takes none)
+#   ui => 1       through ui() (tw when installed): the report on screen;
+#                 ARGS must then put the user's words before any rc. override
 # stdin is /dev/null, so task never waits for an answer.
 
 sub task_open {
@@ -1239,7 +1275,10 @@ sub task_open {
     push @rc, 'rc.hooks=off' if $opt->{read};
     push @rc, 'rc.recurrence.confirmation=no' if $opt->{write};
   }
-  my @argv = ($task, @rc, @args);
+  my $prog = ( $opt->{ui} || $opt->{write} ) ? &ui() : $task;
+  # The report through tw: the user's words first, rc. overrides after (task
+  # takes rc. anywhere; tw reads its shortcuts, @_ and @: name, only first)
+  my @argv = $opt->{ui} ? ($prog, @args, @rc) : ($prog, @rc, @args);
   unshift @argv, 'timeout', $task_timeout if $timeout_bin;
   &audit("EXEC " . quote_args(@argv));
   my %env = ();
@@ -1257,7 +1296,9 @@ sub task_open {
     $SIG{__WARN__} = 'DEFAULT';
     @ENV{keys %env} = values %env;
     open(STDIN, '<', '/dev/null');
-    if ( ($opt->{err} || 'null') eq 'merge' ) {
+    if ( $opt->{errfile} ) {
+      open(STDERR, '>', $opt->{errfile});
+    } elsif ( ($opt->{err} || 'null') eq 'merge' ) {
       open(STDERR, '>&', \*STDOUT);
     } else {
       open(STDERR, '>', '/dev/null');
@@ -1309,23 +1350,23 @@ sub task_get {
 }
 
 #------------------------------------------------------------------
-# task_uuids IDS -- { id => uuid } for the IDs that exist now, in one call
+# task_uuids IDS -- (context, { id => uuid } for the IDs that exist now), in
+# one call: rc.context rides along with the UUIDs
 
 sub task_uuids {
   my %seen;
   my @ids = grep { /^\d+$/ && $_ > 0 && !$seen{$_}++ } @_;
-  return () if ! @ids;
-  my $fh = &task_open({ read => 1 }, '_get', map { "$_.uuid" } @ids);
+  my $fh = &task_open({ read => 1 }, '_get', 'rc.context', map { "$_.uuid" } @ids);
   my $line = <$fh>;
   &task_close($fh);
-  return () if ! defined $line;
+  return ('') if ! defined $line;
   chomp $line;
-  my @uuids = split(/ /, $line, -1);
+  my ($context, @uuids) = split(/ /, $line, -1);
   my %map;
   for my $i (0 .. $#ids) {
     $map{$ids[$i]} = $uuids[$i] if defined $uuids[$i] && $uuids[$i] ne '';
   }
-  return %map;
+  return ($context // '', %map);
 }
 
 #------------------------------------------------------------------
@@ -1367,7 +1408,7 @@ sub task_exec {
   }
   if ( $es != 0 && $needs_pty ) {
     if ( &prompt_y("A hook needs a terminal for 'task " . quote_args(@args) . "'. Run it here? ") ) {
-      $es = &shell_exec([$task, @args], 'forcewait');
+      $es = &shell_exec([&ui(), @args], 'forcewait');
       $result = ( $es == 0 ) ? "Ran in the terminal." : "Failed in the terminal.";
     } else {
       $result = "Not done: a hook needs a terminal for it.";
@@ -1528,7 +1569,7 @@ sub getch_loop {
 
       if ( $ch eq "e" ) {
         my $uuid = &selected_uuid() // last CASE;
-        &shell_exec([$task, $uuid, 'edit'],'wait');
+        &shell_exec([&ui(), $uuid, 'edit'],'wait');
         $reread_needed = 1;
         last CASE;
       }
@@ -1645,7 +1686,7 @@ sub getch_loop {
         }
         my $majmin = &task_version('major.minor');
         if ( $majmin >= 2.3 ) {
-          &shell_exec([$task, 'sync'],'wait');
+          &shell_exec([&ui(), 'sync'],'wait');
           $reread_needed = 1;
         }
         else {
@@ -1656,7 +1697,14 @@ sub getch_loop {
       }
 
       if ( $ch eq 't' ) {
-        &ungetstr(':!rw task ');
+        &ungetstr(':!rw ' . &ui() . ' ');
+        last CASE;
+      }
+
+      if ( $ch eq '@' ) {
+        # context, through tw when it's installed (cmx and all: what's typed
+        # goes to tw unchanged), else task context
+        &ungetstr( &on_path('tw') ? ':!r tw @' : ':!r task context ' );
         last CASE;
       }
 
@@ -1666,7 +1714,7 @@ sub getch_loop {
       }
 
       if ( $ch eq 'u' ) {
-        &shell_exec([$task, 'undo'],'wait');
+        &shell_exec([&ui(), 'undo'],'wait');
         $reread_needed = 1;
         last CASE;
       }
@@ -1702,7 +1750,7 @@ sub getch_loop {
           $reread_needed = 1;
         } else {
           my $uuid = &selected_uuid() // last CASE;
-          &shell_exec([$task, $uuid, 'information'],'forcewait');
+          &shell_exec([&ui(), $uuid, 'information'],'forcewait');
         }
         last CASE;
       }
@@ -1872,6 +1920,34 @@ sub on_path {
 }
 
 #------------------------------------------------------------------
+# ui -- the program for what the user sees and does (the report, writes,
+# terminal commands): tw when it's installed, so its shortcuts, contexts,
+# themes and wrappers apply; task otherwise. vit's own bookkeeping reads
+# (stats, projects, tags, _get) always use $task. Asked each time: cheap.
+
+sub ui {
+  return &on_path('tw') ? 'tw' : $task;
+}
+
+#------------------------------------------------------------------
+# tw_wrappers -- tw's command wrapper keywords (ann, deps, ...), from tw's own
+# list; none without tw
+
+sub tw_wrappers {
+  return () if ! &on_path('tw');
+  my $file = ( $ENV{'TW_TASK_DIR'} || "$ENV{'HOME'}/.task" ) . '/config/.tw_wrappers';
+  open(my $in, '<', $file) or return ();
+  my @names;
+  while ( my $line = <$in> ) {
+    chomp $line;
+    my ($name, $script, $desc, $type) = split(/\|/, $line);
+    push @names, $name if defined $type && $type eq 'command' && $name ne '';
+  }
+  close($in);
+  return @names;
+}
+
+#------------------------------------------------------------------
 
 sub task_info {
   my $n = $_[0];
@@ -2003,7 +2079,7 @@ sub prompt_str {
   # determine mode from prompt text
   if ( $prompt eq ':' ) {
     $mode = 'cmd';
-    @match_types = @report_types;
+    @match_types = (@report_types, &tw_wrappers());
   } else {
     $mode = lc($prompt);
     $mode =~ s/:.*$//;
@@ -2408,8 +2484,11 @@ sub inner_read_report {
     close(IN);
   }
 
-  *IN = &task_open({ read => 1, err => 'null' }, "rc.defaultwidth=$REPORT_COLS", 'rc.defaultheight=0',
-                   'rc._forcecolor=on', &split_args($current_command));
+  # stderr kept aside: task says there when the context was overridden
+  # (rc.context=… typed, or tw's @_ and @: name), which the header shows
+  my $errf = File::Temp->new(TEMPLATE => 'vit-err.XXXXXX', TMPDIR => 1);
+  *IN = &task_open({ read => 1, ui => 1, errfile => $errf->filename }, &split_args($current_command),
+                   "rc.defaultwidth=$REPORT_COLS", 'rc.defaultheight=0', 'rc._forcecolor=on');
   my $i = 0;
   my $prev_id;
   while(<IN>) {
@@ -2449,6 +2528,20 @@ sub inner_read_report {
   }
   close(IN);
 
+  # IDs shift when the data changes behind vit (tw-web, a sync): keep each
+  # line's UUID, and act on that. The context comes in the same call.
+  my ($context, %uuid) = &task_uuids(grep { defined } @report2taskid);
+  $context_name = $context;
+  if ( open(my $err, '<', $errf->filename) ) {
+    while ( my $line = <$err> ) {
+      $line =~ s/\x1b.*?m//g;   # the report runs with color on
+      if ( $line =~ /^Configuration override rc\.context[:=](\S*)/ ) {
+        $context_name = ( $1 eq 'none' ) ? '' : $1;
+      }
+    }
+    close($err);
+  }
+
   if ( $#report_tokens > -1 ) {
     # TODO: this code is quite hard to understand; should probably be rewritten
     #       or at least needs explanation of what is happening here. [BaZo]
@@ -2467,9 +2560,6 @@ sub inner_read_report {
     if ( $task_selected_idx > $#report_tokens ) {
       $task_selected_idx = $#report_tokens;
     }
-    # IDs shift when the data changes behind vit (tw-web, a sync): keep each
-    # line's UUID, and act on that
-    my %uuid = &task_uuids(grep { defined } @report2taskid);
     @report2uuid = map { defined $_ ? $uuid{$_} : undef } @report2taskid;
   } else {
     $error_msg = "Error: task $current_command: no matches";
@@ -2711,7 +2801,9 @@ sub draw_screen {
     }
     $str = "$tasks_completed tasks completed";
   }
-  &draw_header_line(1,$convergence,$str);
+  my $lhs = $context_name ne '' ? "context: $context_name" : '';
+  $lhs .= '  ' if $lhs ne '' && $convergence ne '';
+  &draw_header_line(1,$lhs . $convergence,$str);
   &set_attroff($header_win,$header_attrs);
   $header_win->attroff(COLOR_PAIR($COLOR_HEADER));
 
@@ -2926,7 +3018,9 @@ __DATA__
  cmd   w STRING        wait the current task
  cmd   :![rw] STRING   execute "STRING" in shell. 'r' rereads, 'w' waits
  cmd   :! ... %TASKUUID  the current task's UUID (%TASKID: its ID, %TASKARGS: the report)
- cmd   t               prepend the command prompt with ":!rw task "
+ cmd   t               prepend the command prompt with ":!rw tw " (":!rw task " without tw)
+ cmd   @               context: a "tw @" prompt (cmx, @+, @-, @0, @@), or "task context " without tw
+ cmd   :WORD [ARGS]    a tw command wrapper (ann, deps, checkup, ...) on the current task
  cmd   :s/OLD/NEW/     change OLD to NEW in the current task's description
  cmd   :%s/OLD/NEW/    change OLD to NEW in the current task's description
  cmd   D               denotate if over annotation, delete task if on first line
