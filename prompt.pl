@@ -312,8 +312,7 @@ sub prompt_str {
   noecho();
   curs_set(0);
   if ( $mode ne 'project' && $str eq '' ) { beep(); }
-  if ( ! $str =~ /^:!/ ) {
-    $str =~ s/"/\\"/g;
+  if ( $str !~ /^!/ ) {
     $str =~ s/^\s+//;
     $str =~ s/\s+$//;
   }

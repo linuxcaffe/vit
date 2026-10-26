@@ -21,8 +21,7 @@ sub init_task_env {
   my @reports;
   my $id_column = 0;
   my ($header_color,$task_header_color,$vit_header_color);
-  &audit("EXEC $task show 2>&1");
-  open(IN,"$task show 2>&1 |");
+  *IN = &task_open({ read => 1, err => 'merge' }, 'show');
   while(<IN>) {
     chop;
     if ( $_ =~ /color\.header\s+(.*)/ ) {
@@ -80,8 +79,8 @@ sub init_task_env {
     chop $cli_args;
     $default_command = $cli_args;
   }
-  &audit("EXEC $task rc._forcecolor=on rc.verbose=on $default_command 2>&1");
-  open(IN,"$task rc._forcecolor=on rc.verbose=on $default_command 2>&1 |");
+  *IN = &task_open({ read => 1, err => 'merge' }, 'rc._forcecolor=on', 'rc.verbose=on',
+                   &split_args($default_command));
   while(<IN>) {
     chop;
     if ( $_ =~ /ID/ || ($default_command eq 'summary' && $_ =~ /Project/) ) {

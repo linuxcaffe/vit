@@ -90,3 +90,12 @@ field() { task rc.verbose=nothing $1 export 2>/dev/null | jq -r "$2"; }
 
 fail() { echo "FAIL: $*" >&2; echo "--- screen:" >&2; screen >&2 2>/dev/null; exit 1; }
 check() { local msg="$1"; shift; "$@" || fail "$msg"; }
+
+# hook NAME — install stdin as an executable hook in the throwaway database and turn hooks on
+# (on-add/on-modify hooks get the task JSON on stdin and must echo it back)
+hook() {
+  mkdir -p "$HOME/hooks"
+  cat > "$HOME/hooks/$1"; chmod +x "$HOME/hooks/$1"
+  sed -i 's/^hooks=off/hooks=on/' "$TASKRC"
+  grep -q '^hooks.location=' "$TASKRC" || echo "hooks.location=$HOME/hooks" >> "$TASKRC"
+}

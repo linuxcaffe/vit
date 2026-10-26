@@ -47,8 +47,7 @@ sub inner_read_report {
     $display_start_idx = 0;
   }
 
-  &audit("EXEC $task stat 2>&1");
-  open(IN,"$task stat 2>&1 |");
+  *IN = &task_open({ read => 1, err => 'merge' }, 'stats');
   while(<IN>) {
     chop;
     if ( $_ =~ /^\s*$/ ) { next; }
@@ -65,9 +64,8 @@ sub inner_read_report {
   close(IN);
 
   if ( $burndown eq "yes" ) {
-    $args = "rc.defaultwidth=$REPORT_COLS rc.defaultheight=$REPORT_LINES burndown";
-    &audit("EXEC $task $args 2>&1");
-    open(IN,"$task $args 2>&1 |");
+    *IN = &task_open({ read => 1, err => 'merge' },
+                     "rc.defaultwidth=$REPORT_COLS", "rc.defaultheight=$REPORT_LINES", 'burndown');
     while(<IN>) {
       if ( $_ =~ /Estimated completion: No convergence/ ) {
         $convergence = "no convergence";
@@ -86,8 +84,7 @@ sub inner_read_report {
     }
   }
 
-  &audit("EXEC $task projects 2>&1");
-  open(IN,"$task projects 2>&1 |");
+  *IN = &task_open({ read => 1, err => 'merge' }, 'projects');
   while(<IN>) {
     chop;
     if ( $_ =~ /^\s*$/ ) { next; }
@@ -102,9 +99,8 @@ sub inner_read_report {
   close(IN);
 
   {
-    &audit("EXEC $task tags 2>&1");
     @tag_types=();
-    open(IN,"$task tags 2>&1 |");
+    *IN = &task_open({ read => 1, err => 'merge' }, 'tags');
     my $_started = undef;
     while (my $line=<IN>) {
       # list of tasks starts after a line containing "--- -----"
@@ -123,9 +119,8 @@ sub inner_read_report {
     close(IN);
   }
 
-  $args = "rc.defaultwidth=$REPORT_COLS rc.defaultheight=0 rc._forcecolor=on $current_command";
-  &audit("EXEC $task $args 2> /dev/null");
-  open(IN,"$task $args 2> /dev/null |");
+  *IN = &task_open({ read => 1, err => 'null' }, "rc.defaultwidth=$REPORT_COLS", 'rc.defaultheight=0',
+                   'rc._forcecolor=on', &split_args($current_command));
   my $i = 0;
   my $prev_id;
   while(<IN>) {
@@ -203,8 +198,7 @@ sub inner_read_report {
 
 sub get_num_tasks {
   $num_tasks = 0;
-  &audit("EXEC $task projects 2> /dev/null");
-  open(IN,"$task projects 2> /dev/null |");
+  *IN = &task_open({ read => 1, err => 'null' }, 'projects');
   while(<IN>) {
     if ( $_ =~ /(\d+) task/ ) {
       $num_tasks = $1;

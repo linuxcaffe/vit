@@ -16,6 +16,8 @@ use POSIX qw(setlocale LC_CTYPE WIFSIGNALED WIFEXITED WEXITSTATUS);
 use I18N::Langinfo qw(langinfo CODESET);
 use Encode;
 use Text::CharWidth qw(mbswidth);
+use Text::ParseWords qw(shellwords);
+use File::Temp ();
 
 # Clean up terminal on a Perl error or warning. This makes it more clear what
 # the error or warning message is and it leaves the terminal in a usable state.
@@ -28,11 +30,13 @@ $SIG{__DIE__} = sub { &error_exit(@_); };
 $SIG{__WARN__} = sub { &error_exit("(converted from warning) "."@_"); };
 
 our $commands_file = '%prefix%/share/vit/commands';
-our $task = '%TASK%';
-our $clear = '%CLEAR%';
 if ( $commands_file =~ /^%/ ) { $commands_file = "./commands"; }
-if ( $task =~ /^%/ ) { $task = '/usr/local/bin/task'; }
-if ( $clear =~ /^%/ ) { $clear = '/usr/bin/clear'; }
+# task and clear are found on PATH; every task call goes through exec.pl
+our $task = 'task';
+our $clear = 'clear';
+our $task_timeout = 15;  # seconds, for every captured task call
+our $spool_dir;          # TW_SPOOL_DIR, made on the first write (exec.pl)
+our $timeout_bin = grep { -x "$_/timeout" } split(/:/, $ENV{PATH} || '');
 
 our $cli_args = '';
 our $audit = 0;

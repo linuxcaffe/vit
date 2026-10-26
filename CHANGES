@@ -1,3 +1,9 @@
+ Mon Oct 26 2026 - no shell between vit and task: quotes, parentheses, apostrophes and * in add,
+                    filters and annotations are text; denotate no longer runs $(...) in annotations
+ Mon Oct 26 2026 - reads run with rc.hooks=off (a refresh: 1.6 s -> 0.15 s on a real setup)
+ Mon Oct 26 2026 - fleet contract: TW_NOINTERACT/TW_CLIENT=vit on writes, tw_needs_pty offers the
+                    terminal, spooled hook commands offered after a write; 15 s timeout per task call
+ Mon Oct 26 2026 - task and clear found on PATH; deleting a recurring instance deletes it alone
  Mon Oct 26 2026 - build.sh replaces configure + Makefile; tmux test suite (tests/)
  Sat Jun 14 2018 - fix "Negative repeat count does nothing" errors (GH#153)
  Sat Jun 24 2017 - introduce feature for adding/removing tags (GH#5)

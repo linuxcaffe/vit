@@ -4,4 +4,4 @@ touch "$WORK/SOMEFILE"
 t add alpha
 start_vit vt
 prompt a "pay bills * now"
-check "no file names in it" test "$(field 'description:bills' '.[0].description')" = "pay bills * now"
+check "no file names in it" test "$(field 'description.has:bills' '.[0].description')" = "pay bills * now"

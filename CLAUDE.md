@@ -18,7 +18,7 @@ VIT 1.x, Steve Rader's Perl/Curses full-screen client for Taskwarrior, being ado
 | `vit.pl` | Globals, `use` lines, `require`s, main sequence |
 | `getch.pl` | The key loop: one `if` per key in `CASE:` (each ends with `last CASE`) |
 | `cmds.pl` | Key actions: add, annotate, done, delete/denotate, modify, priority, project, tags, wait, `:!` |
-| `exec.pl` | `task_exec` (output captured, through `sh` today) and `shell_exec` (curses suspended, real terminal) |
+| `exec.pl` | Every `task` call, no shell: `task_open` (argv, `rc.hooks=off` on reads, the TW_* contract on writes, 15 s `timeout`), `task_read`, `task_check`, `task_exec` (a captured write: `tw_needs_pty` → the terminal, then the spool), `shell_exec` (curses suspended, real terminal; argv, or a string for `/bin/sh` for `:!` maps), `split_args`/`quote_args` |
 | `read.pl` | `read_report`: runs `stat`, `projects`, `tags` and the report; builds `@report2taskid` |
 | `env.pl` | Startup: `task show` for colors, reports, `default.command` |
 | `color.pl`, `draw.pl`, `screen.pl`, `curses.pl` | ANSI parsing into curses color pairs, drawing |
@@ -28,7 +28,9 @@ VIT 1.x, Steve Rader's Perl/Curses full-screen client for Taskwarrior, being ado
 
 `build.sh` joins them into one script (`build/vit`): `vit.pl` without its `require` lines, then each part
 without its trailing `return 1;`. So **every part shares one namespace**, and `^require`/`^return` at the
-start of a line are build syntax: don't start a real line of code with either. `%prefix%`, `%TASK%`,
+start of a line are build syntax: don't start a real line of code with either. The parts come
+*after* `vit.pl`'s main sequence, which ends in `exit`, so **a part's top-level statements never run**:
+parts define subs only, and every global with a value is set in `vit.pl`. `%prefix%`, `%TASK%`,
 `%CLEAR%` in `vit.pl` are placeholders (`PREFIX` env sets the first; the others fall back in `vit.pl`).
 The installed copy until the fleet installer lands is `/usr/local/bin/vit` (root-owned, built 2025-01-17).
 
@@ -51,16 +53,19 @@ tests/run.sh stale_id      # one test
   `ln -sf ../../.tools/pre-commit .git/hooks/pre-commit`.
 - Interactive debugging: `build/vit -audit` logs every `task` call to `./vit_audit.log`.
 
-## Rules (from the plan; most are not true of the code yet)
+## Rules
 
-1. **No shell for `task`.** argv lists; free text (annotations, denotate patterns) after `--`. What the
-   user types as a command line (`a`, `m`, `f`, `:REPORT FILTER`) is split like a terminal would, but never
-   run by `sh`. `:!` maps are shell commands on purpose.
-2. **Reads:** `rc.hooks=off`. **Context:** vit follows the CLI's context, as `task` does.
-3. **Writes:** by UUID, not ID (IDs shift when tw-web or a gittw pull changes the data);
-   `rc.confirmation=no` once vit has asked; `TW_NOINTERACT=1 TW_CLIENT=vit`, and a `tw_needs_pty` /
-   `TW_INTERACTIVE_REQUIRED` answer re-runs the command in the terminal
-   (`~/dev/awesome-taskwarrior/CONVENTIONS.md`).
+1. **No shell for `task`: every call goes through `exec.pl`.** argv lists; free text (annotations,
+   denotate patterns) after `--`. What the user types as a command line (`a`, `m`, `f`, `:REPORT FILTER`)
+   goes through `split_args` (split like a terminal would, never run by `sh`). `:!` maps and spooled hook
+   commands are shell commands on purpose.
+2. **Reads:** `task_open({ read => 1 })`: `rc.hooks=off`. **Context:** vit follows the CLI's context, as
+   `task` does (no `rc.context` override). `--version` takes no `rc.` overrides at all (`bare`).
+3. **Writes:** `task_exec`: `rc.confirmation=no` (vit has asked), `rc.recurrence.confirmation=no` (a
+   recurring instance alone), `TW_NOINTERACT=1 TW_CLIENT=vit TW_PREFLIGHT_CMD TW_SPOOL_DIR`; a
+   `tw_needs_pty` / `TW_INTERACTIVE_REQUIRED` answer offers the command again in the terminal, where
+   `shell_exec` clears the no-terminal variables (`~/dev/awesome-taskwarrior/CONVENTIONS.md`).
+   **Not yet:** writes by UUID (phase 2; IDs shift when tw-web or a gittw pull changes the data).
 4. **User text is never a regex** unless it's a search (`/`, `?`), and then a bad one is an error message.
 5. `$SIG{__WARN__}` makes any Perl warning fatal, on purpose. Keep the code warning-free.
 

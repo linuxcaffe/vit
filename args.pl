@@ -20,7 +20,7 @@ sub parse_args {
       shift @ARGV;
       next;
     }
-    $cli_args .= "$ARGV[0] ";
+    $cli_args .= &quote_args($ARGV[0]) . ' ';
     shift @ARGV;
     next;
   }

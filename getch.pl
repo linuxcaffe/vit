@@ -62,7 +62,7 @@ sub getch_loop {
       }
 
       if ( $ch eq "e" ) {
-        &shell_exec("task $report2taskid[$task_selected_idx] edit",'wait');
+        &shell_exec([$task, $report2taskid[$task_selected_idx], 'edit'],'wait');
         $reread_needed = 1;
         last CASE;
       }
@@ -170,7 +170,7 @@ sub getch_loop {
       if ( $ch eq 's' ) {
         my $majmin = &task_version('major.minor');
         if ( $majmin >= 2.3 ) {
-          &shell_exec("task sync",'wait');
+          &shell_exec([$task, 'sync'],'wait');
           $reread_needed = 1;
         }
         else {
@@ -190,7 +190,7 @@ sub getch_loop {
       }
 
       if ( $ch eq 'u' ) {
-        &shell_exec('task undo','wait');
+        &shell_exec([$task, 'undo'],'wait');
         $reread_needed = 1;
         last CASE;
       }
@@ -225,7 +225,7 @@ sub getch_loop {
           $current_command = "ls project:$p";
           $reread_needed = 1;
         } else {
-          &shell_exec("task $report2taskid[$task_selected_idx] information",'forcewait');
+          &shell_exec([$task, $report2taskid[$task_selected_idx], 'information'],'forcewait');
         }
         last CASE;
       }

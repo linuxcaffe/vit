@@ -13,7 +13,7 @@ sub audit {
 
 sub clean_exit {
   unless( $audit ) {
-    &shell_exec("clear", 'no-wait');
+    &shell_exec([$clear], 'no-wait');
   }
   if ( $audit ) {
       close(AUDIT) or die "$!";
@@ -31,7 +31,7 @@ sub error_exit {
     return
   }
   unless( $audit ) {
-    &shell_exec("clear", 'no-wait');
+    &shell_exec([$clear], 'no-wait');
   }
 
   endwin();
@@ -69,7 +69,7 @@ sub is_printable {
 sub task_version {
   my $request = $_[0];
   my $version;
-  open(IN,"task --version 2>&1 |");
+  *IN = &task_open({ bare => 1, err => 'merge' }, '--version');
   while(<IN>) {
     chop;
     $version = $_;
@@ -87,8 +87,7 @@ sub task_version {
 sub task_info {
   my $n = $_[0];
   my $id = $report2taskid[$task_selected_idx];
-  &audit("EXEC $task $id information 2>&1");
-  open(IN,"task $id information 2>&1 |");
+  *IN = &task_open({ read => 1, err => 'merge' }, $id, 'information');
   while(<IN>) {
     chop;
     $_ =~ s/\x1b.*?m//g; # decolorize

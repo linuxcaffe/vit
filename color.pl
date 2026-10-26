@@ -129,8 +129,7 @@ sub extract_color {
   $parsed_colors_fg[1] = -1;
   $parsed_colors_bg[1] = -1;
   $parsed_attrs[1] = '';
-  &audit("EXEC $task rc._forcecolor=on color $s 2>&1");
-  open(IN2,"$task rc._forcecolor=on color $s 2>&1 |");
+  *IN2 = &task_open({ read => 1, err => 'merge' }, 'rc._forcecolor=on', 'color', &split_args($s));
   while(<IN2>){
     if ( $_ =~ /Your sample:/ ) {
       $_ = <IN2>; $_ = <IN2>;

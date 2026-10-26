@@ -23,10 +23,8 @@ sub task_add {
     &draw_prompt_line('');
     return;
   }
-  # TODO: get rid off escaping by replacing the shell call in task_exec() by something like IPC::Open2().
-  #       That would allow us to get rid of all shell expansions, quotations and escaping. [BaZo]
-  $str =~ s{[&^\\]}{\\\&}g;
-  my ($es,$result) = &task_exec("add $str");
+  # a command line: split like a terminal would, attributes parsed by task
+  my ($es,$result) = &task_exec('add', &split_args($str));
   if ( $es != 0 ) {
     $error_msg = $result;
     &draw_error_msg();
@@ -45,19 +43,8 @@ sub task_annotate {
     &draw_prompt_line('');
     return;
   }
-  # This task_exec is different (from, e.g., the one in task_add)
-  # because for annotatate we embed quotes since there is nothing
-  # else for Taskwarrior to interpret. The advantage is that the
-  # user does not need to worry about proper quoting.
-  #
-  # Because single quotes are the enclosing characters, they must be escaped.
-  # This replaces each single quote inside $str with (1) a single quote to end
-  # the single-quoting, a double quote to begin a new type of quoting, a single
-  # quote (which is now embedded in a double quote so does not need escaping),
-  # an end double-quote, and a begin-single-quote that will begin the rest of
-  # the quoting. In summary, we rely on the sh and bash feature of stringing together multiple types of quotes
-  $str =~ s/'/'"'"'/g;
-  my ($es,$result) = &task_exec("$id annotate '$str'");
+  # free text: one argument after --, nothing in it is parsed
+  my ($es,$result) = &task_exec($id, 'annotate', '--', $str);
   if ( $es != 0 ) {
     $error_msg = $result;
     &draw_error_msg();
@@ -88,8 +75,8 @@ sub task_den_or_del {
     }
   }
   my ($es,$result) = ($target eq "annotation")
-                   ? &task_exec("$id denotate \"$str\"")
-                   : &task_exec("$id delete rc.confirmation:no");
+                   ? &task_exec($id, 'denotate', '--', $str)
+                   : &task_exec($id, 'delete');
   if ( $es != 0 ) {
     $error_msg = $result;
     &draw_error_msg();
@@ -107,7 +94,7 @@ sub task_start_stop {
   my ($ch, $str, $yes);
   my $id = $report2taskid[$task_selected_idx];
 
-  my ($state, $result1) = &task_exec("$id active");
+  my $state = &task_check($id, 'active');
   my $prompt = "stop";
   $feedback_msg = "Stopped task";
 
@@ -124,7 +111,7 @@ sub task_start_stop {
     }
   }
 
-  my ($es, $result2) = &task_exec("$id $prompt");
+  my ($es, $result2) = &task_exec($id, $prompt);
   if ( $es != 0 ) {
     $error_msg = $result2;
     &draw_error_msg();
@@ -147,7 +134,7 @@ sub task_done {
       return;
     }
   }
-  my ($es,$result) = &task_exec("$id done");
+  my ($es,$result) = &task_exec($id, 'done');
   if ( $es != 0 ) {
     $error_msg = $result;
     &draw_error_msg();
@@ -184,9 +171,9 @@ sub task_filter {
 #------------------------------------------------------------------
 
 sub task_modify {
-  my $args = $_[0];
+  my @args = @_;
   my $id = $report2taskid[$task_selected_idx];
-  &shell_exec("$task $id modify $args",'wait');
+  &shell_exec([$task, $id, 'modify', @args],'wait');
   $reread_needed = 1;
 }
 
@@ -199,7 +186,7 @@ sub task_modify_prompt {
     &draw_prompt_line('');
     return;
   }
-  &task_modify("$str");
+  &task_modify(&split_args($str));
   $reread_needed = 1;
 }
 
@@ -217,7 +204,7 @@ sub task_set_priority {
     if ( $p eq 'N' ) {
       $p = '';
     }
-    my ($es,$result) = &task_exec("$id modify 'priority:$p'");
+    my ($es,$result) = &task_exec($id, 'modify', "priority:$p");
     if ( $es != 0 ) {
       $error_msg = $result;
       &draw_error_msg();
@@ -247,7 +234,7 @@ sub task_set_project {
     beep();
     return;
   }
-  my ($es,$result) = &task_exec("$id modify 'project:$p'");
+  my ($es,$result) = &task_exec($id, 'modify', "project:$p");
   if ( $es != 0 ) {
     $error_msg = $result;
     &draw_error_msg();
@@ -267,7 +254,7 @@ sub task_set_wait {
     &draw_prompt_line('');
     return;
   }
-  my ($es,$result) = &task_exec("$id modify 'wait:$w'");
+  my ($es,$result) = &task_exec($id, 'modify', "wait:$w");
   if ( $es != 0 ) {
     $error_msg = $result;
     &draw_error_msg();
@@ -307,7 +294,7 @@ sub task_set_tag {
       $t = $mod . $t;
     }
 
-    my ($es,$result) = &task_exec("$id modify '$t'");
+    my ($es,$result) = &task_exec($id, 'modify', $t);
     if ( $es != 0 ) {
       $error_msg = $result;
       &draw_error_msg();
