@@ -79,7 +79,7 @@ set confirmation=no
 Enter). In the command, `%TASKUUID` is the selected task's UUID, `%TASKID` its ID and `%TASKARGS` the
 current report. Prefer `%TASKUUID` in a map that changes a task: IDs change when the data changes
 elsewhere. `set` takes `confirmation`, `wait` and `burndown` (yes/no). See `man vitrc` and `man vit`
-(installed under `~/.task/docs/man`: `man -M ~/.task/docs/man vit`).
+(installed under `~/.task/man`, where `man` finds them beside `~/.task/scripts` on your PATH).
 
 `-audit` logs every `task` command vit runs to `$XDG_RUNTIME_DIR/vit/vit_audit.log`.
 
