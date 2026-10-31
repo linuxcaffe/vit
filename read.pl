@@ -16,6 +16,7 @@ sub read_report {
   if ( $mode eq 'refresh' ) {
     &follow_selection($prev_uuid, $prev_offset);
   }
+  &prune_marks();
 }
 
 #------------------------------------------------------------------

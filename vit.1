@@ -51,7 +51,10 @@ $XDG_RUNTIME_DIR/vit/vit_audit.log (~/.cache/vit/ without XDG_RUNTIME_DIR).
  cmd   d               mark the current task done
  nav   j               move down one line
  nav   DownArrow       move down one line
- nav   Spacebar        move down one line
+ cmd   Spacebar        mark/unmark the task, move to the next
+ cmd   Esc             clear the marks
+ cmd   d D m P p T w A act on every marked task, then unmark
+ cmd                   (D on an annotation line: just that line)
  nav   :N              move to task number N
  nav   0               move to the first line
  nav   gg              move to the first line
@@ -91,6 +94,10 @@ User configuration file (\fB$TW_TASK_DIR/config/vitrc\fR when TW_TASK_DIR is set
 .TP
 ~/.vitrc
 Read instead when there is no ~/.task/config/vitrc.
+.TP
+~/.taskrc
+vit's colours: \fBcolor.vit.selection\fR (the cursor line, white on blue) and
+\fBcolor.vit.marked\fR (marked lines, black on yellow), in Taskwarrior's colour syntax.
 
 .SH "CREDITS & COPYRIGHTS"
 .PP

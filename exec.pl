@@ -39,7 +39,7 @@ sub quote_args {
 # to read its output from, closed with task_close (or alias a bareword:
 # *IN = &task_open(...); while(<IN>) ...; close(IN) also sets $?). OPTS:
 #   read => 1     a read: rc.hooks=off (no on-launch/on-exit hooks)
-#   write => 1    a write: rc.recurrence.confirmation=no, the TW_* contract
+#   write => 1    a write: rc.recurrence.confirmation=no, rc.bulk=0, the TW_* contract
 #   err => 'merge' (stderr into the output) or 'null' (default)
 #   errfile => PATH   stderr to that file instead
 #   bare => 1     no rc. overrides at all (task --version takes none)
@@ -55,7 +55,9 @@ sub task_open {
   unless ( $opt->{bare} ) {
     push @rc, 'rc.confirmation=no';
     push @rc, 'rc.hooks=off' if $opt->{read};
-    push @rc, 'rc.recurrence.confirmation=no' if $opt->{write};
+    # vit has asked (one task or several marked): task asks nothing more,
+    # and with stdin /dev/null its "alter N tasks?" (over rc.bulk) is a no
+    push @rc, 'rc.recurrence.confirmation=no', 'rc.bulk=0' if $opt->{write};
   }
   my $prog = ( $opt->{ui} || $opt->{write} ) ? &ui() : $task;
   # The report through tw: the user's words first, rc. overrides after (task

@@ -103,6 +103,9 @@ our $context_name = '';    # rc.context at the last read (the header shows it)  
 our $search_direction = 1;
 our $search_pat = undef;
 our $selection_attrs = '';
+our %marked = ();          # multi-select: marked tasks by UUID (space); cleared after a command uses them
+our $marked_attrs = '';
+our $gutter_win;           # screen column 0 beside the report: '*' on a marked line
 our @taskid2report = ();
 our $tasks_completed = 0;
 our $tasks_pending = 0;
@@ -117,7 +120,8 @@ our $COLOR_REPORT_HEADER = 2;
 our $COLOR_SELECTION = 3;
 our $COLOR_EMPTY_LINE = 4;
 our $COLOR_ERRORS = 5;
-our $next_color_pair = 6;
+our $COLOR_MARKED = 6;
+our $next_color_pair = 7;
 
 our %shortcuts;
 our $cur_pos;

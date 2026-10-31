@@ -22,6 +22,8 @@ sub draw_screen {
     }
     $str = "$num_tasks tasks shown";
   }
+  my $n_marked = scalar(keys %marked);
+  $str .= ", $n_marked marked" if $n_marked;
   &draw_header_line(0,"task $current_command",$str);
   CASE: {
     if ( $current_command eq 'summary' && $num_tasks == 1 ) {
@@ -86,6 +88,7 @@ sub draw_screen {
     $line++;
   }
   $report_win->refresh();
+  &draw_gutter();
   if ( $display_start_idx == 0 ) {
     $cursor_position = 'Top';
   } elsif ( $display_start_idx + $REPORT_LINES >= $#report_tokens + 1 ) {
@@ -120,6 +123,17 @@ sub draw_screen {
     }
   }
 
+}
+
+#------------------------------------------------------------------
+# draw_gutter -- screen column 0 beside the report: '*' on each marked line
+
+sub draw_gutter {
+  for my $line ( 0 .. $REPORT_LINES - 1 ) {
+    my $i = $display_start_idx + $line;
+    $gutter_win->addstr($line, 0, ( $i <= $#report_tokens && &is_marked($i) ) ? '*' : ' ');
+  }
+  $gutter_win->refresh();
 }
 
 return 1;

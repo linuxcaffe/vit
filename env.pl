@@ -42,6 +42,16 @@ sub init_task_env {
       init_pair($COLOR_SELECTION,$parsed_colors_fg[1],$parsed_colors_bg[1]);
       next;
     }
+    if ( $_ =~ /color\.vit\.marked\s+(.*)/ ) {
+      my $str = $1;
+      $str =~ s/\x1b.*?m//g;
+      $str =~ s/^\s+//;
+      $str =~ s/\s+$//;
+      &extract_color($str,'vit marked');
+      $marked_attrs = $parsed_attrs[1];
+      init_pair($COLOR_MARKED,$parsed_colors_fg[1],$parsed_colors_bg[1]);
+      next;
+    }
     if ( $_ =~ /default.command\s+(.*)/ ) {
       $default_command = $1;
       $default_command =~ s/\x1b.*?m//g;

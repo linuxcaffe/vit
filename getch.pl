@@ -88,7 +88,12 @@ sub getch_loop {
         last CASE;
       }
 
-      if ( $ch eq 'j' || $ch eq KEY_DOWN || $ch eq ' ' ) {
+      if ( $ch eq ' ' ) {
+        &toggle_mark();
+        last CASE;
+      }
+
+      if ( $ch eq 'j' || $ch eq KEY_DOWN ) {
         if ( $task_selected_idx >= $#report_tokens ) {
           beep;
           last CASE;
@@ -283,6 +288,8 @@ sub getch_loop {
       if ( $ch eq "\e" || $ch eq "\cg" ) {
         $error_msg = '';
         $feedback_msg = '';
+        my $n = &clear_marks();
+        $feedback_msg = "Unmarked $n tasks." if $n;
         $refresh_needed = 1;
         $input_mode = 'cmd';
         last CASE;

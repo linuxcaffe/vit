@@ -11,6 +11,7 @@ sub init_curses {
   init_pair($COLOR_ERRORS,COLOR_WHITE,COLOR_RED);
   if ( $m eq 'init' ) {
     init_pair($COLOR_SELECTION,COLOR_WHITE,COLOR_BLUE);
+    init_pair($COLOR_MARKED,COLOR_BLACK,COLOR_YELLOW);
   }
   init_pair($COLOR_EMPTY_LINE,COLOR_BLUE,-1); # blue foreground
   my $HEADER_SIZE = 3;
@@ -19,6 +20,7 @@ sub init_curses {
   $header_win = newwin($HEADER_SIZE, $COLS, 0, 0);
   $report_win = newwin($REPORT_LINES+$HEADER_SIZE, $REPORT_COLS+2, 3, 1);
   $prompt_win = newwin(1, $COLS, $LINES-1, 0);
+  $gutter_win = newwin($REPORT_LINES, 1, 3, 0);
   keypad($report_win, 1);
   keypad($prompt_win, 1);
 }
