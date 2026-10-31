@@ -29,10 +29,15 @@
  nav   j               move down one line
  nav   DownArrow       move down one line
  cmd   Spacebar        mark (or unmark) the current task and move to the next one
+ cmd   V               mark every task from the last one marked or unmarked to this one
  cmd   Esc             clear the marks
  cmd   (marked)        d D m P p T w A act on every marked task, and clear the marks after;
                        D on an annotation line denotates that line; the rest: the current task.
                        Marked lines: color.vit.marked in the taskrc (black on yellow)
+ mouse click           select the line;  double-click: the task's info (as Enter)
+ mouse ctrl-click      mark (or unmark) the task; a right click does the same
+ mouse shift-click     mark a range (as V); the wheel moves three lines.  set mouse=no
+                       in the vitrc leaves the mouse to the terminal (for copying text)
  nav   :N              move to task number N
  nav   0               move to the first line
  nav   gg              move to the first line

@@ -125,3 +125,16 @@ exec task "\$@"
 FAKE
   : > "$T/tw.log"
 }
+
+# Mouse, as an xterm sends it (X10 encoding: ESC [ M, then 32+button, 33+column, 33+row; both
+# 0-based screen cells). ncurses takes a click's modifiers from the release, so they go on both.
+# mouse BUTTON COL ROW — one raw event; BUTTON: 0 left, 2 right, 3 release, 64/65 wheel up/down,
+# +4 shift, +16 ctrl
+mouse() { keys -H 1b 5b 4d $(printf '%x %x %x' $((32 + $1)) $((33 + $2)) $((33 + $3))); }
+# click ROW [MOD] — a left click on screen row ROW (report line N is row N+3); MOD 4 shift, 16 ctrl
+click() { local m=${2:-0}; mouse $((0 + m)) 10 "$1"; mouse $((3 + m)) 10 "$1"; }
+right_click() { mouse 2 10 "$1"; mouse 3 10 "$1"; }
+double_click() { click "$1"; click "$1"; }
+wheel() { if [ "$1" = up ]; then mouse 64 10 5; else mouse 65 10 5; fi; }   # wheel up|down
+# mouse_on — vit has the terminal's mouse reporting on
+mouse_on() { test "$(tmux -L "$TMUX_SOCK" display -p '#{mouse_any_flag}')" = 1; }

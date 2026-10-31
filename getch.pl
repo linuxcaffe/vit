@@ -241,16 +241,17 @@ sub getch_loop {
       }
 
       if ( $ch eq '=' || $ch eq "\n" ) {
-        if ( $current_command eq 'summary' ) {
-          my $p = $report_tokens[$task_selected_idx][0];
-          $p =~ s/(.*?)\s+.*/$1/;
-          $p =~ s/\(none\)//;
-          $current_command = "ls project:$p";
-          $reread_needed = 1;
-        } else {
-          my $uuid = &selected_uuid() // last CASE;
-          &shell_exec([&ui(), $uuid, 'information'],'forcewait');
-        }
+        &task_show_info();
+        last CASE;
+      }
+
+      if ( $ch eq 'V' ) {
+        &mark_range();
+        last CASE;
+      }
+
+      if ( $ch eq KEY_MOUSE ) {
+        &mouse_event();
         last CASE;
       }
 

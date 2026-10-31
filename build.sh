@@ -11,7 +11,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 OUT="${1:-build/vit}"
 PARTS="args.pl cmdline.pl cmds.pl color.pl curses.pl draw.pl env.pl exec.pl
-  getch.pl misc.pl prompt.pl read.pl search.pl screen.pl vitrc.pl"
+  getch.pl misc.pl mouse.pl prompt.pl read.pl search.pl screen.pl vitrc.pl"
 
 # A release build (VERSION without -dev) depends on the source alone, so the committed
 # vit can be checked against a fresh build (.tools/pre-commit). A -dev build names its commit.

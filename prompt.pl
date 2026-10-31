@@ -17,7 +17,7 @@ sub prompt_y {
 #            with the getchar() function
 #            See http://search.cpan.org/~giraffed/Curses-1.36/Curses.pm#getchar
 sub prompt_u8getch() {
-  my $chr = $prompt_win->getch();
+  my $chr = &prompt_getch();
 
   my $cpt = ord($chr);
   if ($chr =~ /\A\d+\z/ || $cpt <= 127) {
@@ -40,6 +40,17 @@ sub prompt_u8getch() {
   return decode_utf8($chr);
 }
 
+# prompt_getch -- the prompt window's next key; mouse events are dropped
+sub prompt_getch {
+  my $ch = $prompt_win->getch();
+  while ( $ch eq KEY_MOUSE ) {
+    my $ev = '';
+    getmouse($ev);
+    $ch = $prompt_win->getch();
+  }
+  return $ch;
+}
+
 #------------------------------------------------------------------
 
 sub prompt_chr {
@@ -48,7 +59,7 @@ sub prompt_chr {
   echo();
   curs_set(1);
   &draw_prompt($prompt);
-  $ch = $prompt_win->getch();
+  $ch = &prompt_getch();
   if ( $ch eq KEY_RESIZE ) {
     # FIXME resize
     # This code chunk is also in getch.pl, except the call to draw_prompt_cur.

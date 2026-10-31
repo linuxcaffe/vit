@@ -65,6 +65,14 @@ sub parse_vitrc {
           }
           $nowait = ($configval eq "no");
         }
+        elsif ($configname eq "mouse") {
+          if (!&sanitycheck_bool($configval)) {
+            print STDERR "ERROR: boolean config variable '$configname' must ".
+                         "be set to 'yes' or 'no'.\n";
+            exit(1);
+          }
+          $mouse = ($configval eq "yes");
+        }
       }
     }
     close(IN);

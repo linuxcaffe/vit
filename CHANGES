@@ -1,3 +1,8 @@
+ Sat Oct 31 2026 - mouse: a click selects, a double-click shows the info (Enter), ctrl-click or a
+                    right click marks/unmarks, shift-click marks a range, the wheel moves three
+                    lines; clicks in a prompt are dropped. V marks a range from the keyboard
+                    (from the last task marked or unmarked). "set mouse=no" in the vitrc turns
+                    it off
  Sat Oct 31 2026 - This is VIT 1.4.3: multi-select (Spacebar); hooks get no terminal behind the
                     screen; a hook's reason shown
  Sat Oct 31 2026 - multi-select: Spacebar marks (or unmarks) a task and moves to the next; d D m P p T

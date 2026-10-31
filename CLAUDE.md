@@ -19,6 +19,7 @@ VIT 1.x, Steve Rader's Perl/Curses full-screen client for Taskwarrior, being ado
 | `getch.pl` | The key loop: one `if` per key in `CASE:` (each ends with `last CASE`) |
 | `cmds.pl` | Key actions: add, annotate, done, delete/denotate, modify, priority, project, tags, wait, `:!`; multi-select (`%marked` by UUID, `toggle_mark`, `targets`: the marked tasks, else the cursor's; the whitelist is the commands that call `targets`) |
 | `exec.pl` | Every `task` call, no shell: `task_open` (argv, own session so no `/dev/tty`, `rc.hooks=off` on reads, the TW_* contract on writes, 15 s `timeout`), `task_read`, `task_check`, `task_exec` (a captured write: `tw_needs_pty` → the terminal, then the spool; a hook's `reason` / `.reason` in the question), `shell_exec` (curses suspended, real terminal; argv, or a string for `/bin/sh` for `:!` maps), `split_args`/`quote_args` |
+| `mouse.pl` | `KEY_MOUSE`: click selects, double-click = Enter, ctrl/right-click toggles a mark, shift-click = `V` (`mark_range`), wheel ±3 (`move_selection`); `set mouse=no` skips `mousemask`. `prompt_getch` drops clicks in prompts. Tests send X10 bytes (`click`, `wheel` in `lib.sh`) |
 | `read.pl` | `read_report`: runs `stat`, `projects`, `tags` and the report; builds `@report2taskid` |
 | `env.pl` | Startup: `task show` for colors, reports, `default.command` |
 | `color.pl`, `draw.pl`, `screen.pl`, `curses.pl` | ANSI parsing into curses color pairs, drawing |

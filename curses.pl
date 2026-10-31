@@ -23,6 +23,7 @@ sub init_curses {
   $gutter_win = newwin($REPORT_LINES, 1, 3, 0);
   keypad($report_win, 1);
   keypad($prompt_win, 1);
+  &init_mouse();
 }
 
 #------------------------------------------------------------------

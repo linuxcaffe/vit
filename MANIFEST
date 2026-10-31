@@ -20,6 +20,7 @@ env.pl
 exec.pl
 getch.pl
 misc.pl
+mouse.pl
 prompt.pl
 read.pl
 screen.pl

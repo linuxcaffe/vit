@@ -105,6 +105,7 @@ our $search_pat = undef;
 our $selection_attrs = '';
 our %marked = ();          # multi-select: marked tasks by UUID (space); cleared after a command uses them
 our $marked_attrs = '';
+our $mark_anchor;          # the last task marked or unmarked, by UUID: V and shift-click mark from it
 our $gutter_win;           # screen column 0 beside the report: '*' on a marked line
 our @taskid2report = ();
 our $tasks_completed = 0;
@@ -134,6 +135,7 @@ our $during_try = 0;
 my $burndown = "no";
 my $confirmation = 1;
 my $nowait = undef;
+my $mouse = 1;
 
 require 'args.pl';
 require 'cmdline.pl';
@@ -145,6 +147,7 @@ require 'draw.pl';
 require 'env.pl';
 require 'getch.pl';
 require 'misc.pl';
+require 'mouse.pl';
 require 'prompt.pl';
 require 'read.pl';
 require 'screen.pl';

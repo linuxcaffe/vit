@@ -6,6 +6,8 @@
 # cursor's task (every line of it) and moves down. d D m P p T w A act on
 # every marked task when there are any (targets), and clear the marks when
 # they succeed; every other command acts on the cursor task. Esc clears them.
+# V marks every task from $mark_anchor (the last task marked or unmarked) to the
+# cursor's; the mouse does the same (mouse.pl).
 
 sub is_marked {
   my ($i) = @_;
@@ -16,8 +18,7 @@ sub is_marked {
 # toggle_mark -- mark or unmark the cursor's task, then move to the next task
 # (past its annotation lines: a mark is the whole task)
 sub toggle_mark {
-  my $uuid = &selected_uuid() // return;
-  if ( $marked{$uuid} ) { delete $marked{$uuid}; } else { $marked{$uuid} = 1; }
+  my $uuid = &toggle_mark_here() // return;
   my $i = $task_selected_idx;
   $i++ while $i < $#report_tokens && defined $report2uuid[$i] && $report2uuid[$i] eq $uuid;
   if ( defined $report2uuid[$i] && $report2uuid[$i] ne $uuid ) {
@@ -29,10 +30,47 @@ sub toggle_mark {
   $refresh_needed = 1;
 }
 
+# toggle_mark_here -- mark or unmark the cursor's task; its UUID (undef: no task there)
+sub toggle_mark_here {
+  my $uuid = &selected_uuid() // return undef;
+  if ( $marked{$uuid} ) { delete $marked{$uuid}; } else { $marked{$uuid} = 1; }
+  $mark_anchor = $uuid;
+  $refresh_needed = 1;
+  return $uuid;
+}
+
+# mark_range -- mark every task from the anchor's line to the cursor's (the
+# cursor's alone when the anchor isn't shown); the cursor's becomes the anchor
+sub mark_range {
+  my $uuid = &selected_uuid() // return;
+  my ($from) = grep { defined $report2uuid[$_] && $report2uuid[$_] eq ($mark_anchor // '') }
+               0 .. $#report2uuid;
+  $from //= $task_selected_idx;
+  my ($lo, $hi) = sort { $a <=> $b } ($from, $task_selected_idx);
+  $marked{$_} = 1 for grep { defined } @report2uuid[$lo .. $hi];
+  $mark_anchor = $uuid;
+  $refresh_needed = 1;
+}
+
+# task_show_info -- Enter: the task's info; on the summary report, that project's tasks
+sub task_show_info {
+  if ( $current_command eq 'summary' ) {
+    my $p = $report_tokens[$task_selected_idx][0];
+    $p =~ s/(.*?)\s+.*/$1/;
+    $p =~ s/\(none\)//;
+    $current_command = "ls project:$p";
+    $reread_needed = 1;
+  } else {
+    my $uuid = &selected_uuid() // return;
+    &shell_exec([&ui(), $uuid, 'information'],'forcewait');
+  }
+}
+
 # clear_marks -- how many there were
 sub clear_marks {
   my $n = scalar(keys %marked);
   %marked = ();
+  $mark_anchor = undef;
   return $n;
 }
 
