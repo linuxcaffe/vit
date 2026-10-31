@@ -28,7 +28,8 @@ any columns, your taskrc's colors: nothing to configure twice.
   `p` `T` `w` `A` act on all of them, after vit asks, then the marks clear. Esc clears them by hand.
   Marked lines are black on yellow with a `*` beside them (`color.vit.marked` in your taskrc)
 - **Mouse:** click selects, double-click shows the info, ctrl-click (or a right click) marks, shift-click
-  marks a range (`V` from the keyboard), the wheel scrolls. `set mouse=no` in the vitrc gives the mouse
+  marks a range (`V` from the keyboard), the wheel scrolls. Many terminals keep shift-click and the right
+  button for themselves; `V` and ctrl-click always work. `set mouse=no` in the vitrc gives the mouse
   back to the terminal, for copying text without holding Shift
 - **`s`** syncs: `gittw sync` when gittw is installed, else `task sync`
 - **`@`** changes the context (the header shows the active one)

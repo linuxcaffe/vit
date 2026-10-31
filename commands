@@ -36,8 +36,9 @@
                        Marked lines: color.vit.marked in the taskrc (black on yellow)
  mouse click           select the line;  double-click: the task's info (as Enter)
  mouse ctrl-click      mark (or unmark) the task; a right click does the same
- mouse shift-click     mark a range (as V); the wheel moves three lines.  set mouse=no
-                       in the vitrc leaves the mouse to the terminal (for copying text)
+ mouse shift-click     mark a range (as V); the wheel moves three lines.  Many terminals
+                       keep shift-click and the right button for themselves: V and ctrl-click
+                       always work.  set mouse=no in the vitrc leaves the mouse to the terminal
  nav   :N              move to task number N
  nav   0               move to the first line
  nav   gg              move to the first line
