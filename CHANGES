@@ -1,3 +1,5 @@
+ Sat Oct 31 2026 - This is VIT 1.4.4: the mouse (click, double-click, ctrl-click marks, wheel); V
+                    marks a range
  Sat Oct 31 2026 - mouse: a click selects, a double-click shows the info (Enter), ctrl-click or a
                     right click marks/unmarks, shift-click marks a range, the wheel moves three
                     lines; clicks in a prompt are dropped. V marks a range from the keyboard

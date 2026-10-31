@@ -2,7 +2,7 @@
 #
 # VIT - Visual Interactive Taskwarrior
 #
-# 1.4.3
+# 1.4.4
 #
 # Copyright 2012 - 2013, Steve Rader
 # Copyright 2013 - 2018, Scott Kostyshak
@@ -105,13 +105,14 @@ our $search_pat = undef;
 our $selection_attrs = '';
 our %marked = ();          # multi-select: marked tasks by UUID (space); cleared after a command uses them
 our $marked_attrs = '';
+our $mark_anchor;          # the last task marked or unmarked, by UUID: V and shift-click mark from it
 our $gutter_win;           # screen column 0 beside the report: '*' on a marked line
 our @taskid2report = ();
 our $tasks_completed = 0;
 our $tasks_pending = 0;
 our $task_selected_idx = 0;
 our $titlebar = 0;
-our $version = '1.4.3';
+our $version = '1.4.4';
 our $REPORT_LINES;
 our $REPORT_COLS;
 
@@ -134,6 +135,7 @@ our $during_try = 0;
 my $burndown = "no";
 my $confirmation = 1;
 my $nowait = undef;
+my $mouse = 1;
 
 
 ###################################################################
@@ -330,6 +332,8 @@ sub show_help {
 # cursor's task (every line of it) and moves down. d D m P p T w A act on
 # every marked task when there are any (targets), and clear the marks when
 # they succeed; every other command acts on the cursor task. Esc clears them.
+# V marks every task from $mark_anchor (the last task marked or unmarked) to the
+# cursor's; the mouse does the same (mouse.pl).
 
 sub is_marked {
   my ($i) = @_;
@@ -340,8 +344,7 @@ sub is_marked {
 # toggle_mark -- mark or unmark the cursor's task, then move to the next task
 # (past its annotation lines: a mark is the whole task)
 sub toggle_mark {
-  my $uuid = &selected_uuid() // return;
-  if ( $marked{$uuid} ) { delete $marked{$uuid}; } else { $marked{$uuid} = 1; }
+  my $uuid = &toggle_mark_here() // return;
   my $i = $task_selected_idx;
   $i++ while $i < $#report_tokens && defined $report2uuid[$i] && $report2uuid[$i] eq $uuid;
   if ( defined $report2uuid[$i] && $report2uuid[$i] ne $uuid ) {
@@ -353,10 +356,47 @@ sub toggle_mark {
   $refresh_needed = 1;
 }
 
+# toggle_mark_here -- mark or unmark the cursor's task; its UUID (undef: no task there)
+sub toggle_mark_here {
+  my $uuid = &selected_uuid() // return undef;
+  if ( $marked{$uuid} ) { delete $marked{$uuid}; } else { $marked{$uuid} = 1; }
+  $mark_anchor = $uuid;
+  $refresh_needed = 1;
+  return $uuid;
+}
+
+# mark_range -- mark every task from the anchor's line to the cursor's (the
+# cursor's alone when the anchor isn't shown); the cursor's becomes the anchor
+sub mark_range {
+  my $uuid = &selected_uuid() // return;
+  my ($from) = grep { defined $report2uuid[$_] && $report2uuid[$_] eq ($mark_anchor // '') }
+               0 .. $#report2uuid;
+  $from //= $task_selected_idx;
+  my ($lo, $hi) = sort { $a <=> $b } ($from, $task_selected_idx);
+  $marked{$_} = 1 for grep { defined } @report2uuid[$lo .. $hi];
+  $mark_anchor = $uuid;
+  $refresh_needed = 1;
+}
+
+# task_show_info -- Enter: the task's info; on the summary report, that project's tasks
+sub task_show_info {
+  if ( $current_command eq 'summary' ) {
+    my $p = $report_tokens[$task_selected_idx][0];
+    $p =~ s/(.*?)\s+.*/$1/;
+    $p =~ s/\(none\)//;
+    $current_command = "ls project:$p";
+    $reread_needed = 1;
+  } else {
+    my $uuid = &selected_uuid() // return;
+    &shell_exec([&ui(), $uuid, 'information'],'forcewait');
+  }
+}
+
 # clear_marks -- how many there were
 sub clear_marks {
   my $n = scalar(keys %marked);
   %marked = ();
+  $mark_anchor = undef;
   return $n;
 }
 
@@ -956,6 +996,7 @@ sub init_curses {
   $gutter_win = newwin($REPORT_LINES, 1, 3, 0);
   keypad($report_win, 1);
   keypad($prompt_win, 1);
+  &init_mouse();
 }
 
 #------------------------------------------------------------------
@@ -1916,16 +1957,17 @@ sub getch_loop {
       }
 
       if ( $ch eq '=' || $ch eq "\n" ) {
-        if ( $current_command eq 'summary' ) {
-          my $p = $report_tokens[$task_selected_idx][0];
-          $p =~ s/(.*?)\s+.*/$1/;
-          $p =~ s/\(none\)//;
-          $current_command = "ls project:$p";
-          $reread_needed = 1;
-        } else {
-          my $uuid = &selected_uuid() // last CASE;
-          &shell_exec([&ui(), $uuid, 'information'],'forcewait');
-        }
+        &task_show_info();
+        last CASE;
+      }
+
+      if ( $ch eq 'V' ) {
+        &mark_range();
+        last CASE;
+      }
+
+      if ( $ch eq KEY_MOUSE ) {
+        &mouse_event();
         last CASE;
       }
 
@@ -2158,6 +2200,72 @@ sub ungetstr {
 }
 
 ########################################################
+## mouse.pl...
+#------------------------------------------------------------------
+# The mouse (on unless the vitrc says "set mouse=no"): a click selects the line
+# under it, a double-click shows the task's info (Enter), ctrl-click or a right
+# click marks or unmarks the task, shift-click marks a range (V), the wheel
+# moves the selection three lines. Clicks inside a prompt are dropped
+# (prompt_getch). ncurses gives the mouse back to the terminal while vit is
+# suspended (shell_exec) and takes it again on return.
+
+# init_mouse -- from init_curses
+sub init_mouse {
+  return if ! $mouse;
+  my $old = 0;
+  mousemask(BUTTON1_CLICKED | BUTTON1_DOUBLE_CLICKED | BUTTON3_CLICKED
+            | BUTTON4_PRESSED | &button5_pressed(), $old);
+}
+
+# Curses.pm has no BUTTON5_PRESSED: one button's bits on from button 4's
+# (5 bits a button in ncurses 6's mouse ABI, 6 in the old one)
+sub button5_pressed {
+  return BUTTON4_PRESSED * ( BUTTON2_PRESSED / BUTTON1_PRESSED );
+}
+
+# mouse_event -- a KEY_MOUSE from the report window's getch
+sub mouse_event {
+  my $ev = '';
+  return if getmouse($ev) == ERR;
+  my (undef, $x, $y, undef, $b) = unpack('s x2 i3 L', $ev);
+  &audit("Mouse: x=$x y=$y buttons=" . sprintf('%#x', $b));
+  if ( $b & BUTTON4_PRESSED ) { &move_selection(-3); return; }
+  if ( $b & &button5_pressed() ) { &move_selection(3); return; }
+  my ($top, $left);
+  $report_win->getbegyx($top, $left);
+  my $line = $y - $top;
+  return if $line < 0 || $line >= $REPORT_LINES;
+  my $i = $display_start_idx + $line;
+  return if $i > $#report_tokens;
+  $task_selected_idx = $i;
+  $refresh_needed = 1;
+  if ( $b & BUTTON1_DOUBLE_CLICKED ) {
+    &task_show_info();
+  } elsif ( $b & BUTTON3_CLICKED || ( $b & BUTTON1_CLICKED && $b & BUTTON_CTRL ) ) {
+    &toggle_mark_here();
+  } elsif ( $b & BUTTON1_CLICKED && $b & BUTTON_SHIFT ) {
+    &mark_range();
+  }
+}
+
+# move_selection N -- N lines down (up when negative), stopping at the ends;
+# the screen scrolls to keep the selection on it
+sub move_selection {
+  my ($n) = @_;
+  return if $#report_tokens < 0;
+  my $i = $task_selected_idx + $n;
+  $i = 0 if $i < 0;
+  $i = $#report_tokens if $i > $#report_tokens;
+  $task_selected_idx = $i;
+  if ( $i < $display_start_idx ) {
+    $display_start_idx = $i;
+  } elsif ( $i >= $display_start_idx + $REPORT_LINES ) {
+    $display_start_idx = $i - $REPORT_LINES + 1;
+  }
+  $refresh_needed = 1;
+}
+
+########################################################
 ## prompt.pl...
 # Copyright 2012 - 2013, Steve Rader
 # Copyright 2013 - 2018, Scott Kostyshak
@@ -2178,7 +2286,7 @@ sub prompt_y {
 #            with the getchar() function
 #            See http://search.cpan.org/~giraffed/Curses-1.36/Curses.pm#getchar
 sub prompt_u8getch() {
-  my $chr = $prompt_win->getch();
+  my $chr = &prompt_getch();
 
   my $cpt = ord($chr);
   if ($chr =~ /\A\d+\z/ || $cpt <= 127) {
@@ -2201,6 +2309,17 @@ sub prompt_u8getch() {
   return decode_utf8($chr);
 }
 
+# prompt_getch -- the prompt window's next key; mouse events are dropped
+sub prompt_getch {
+  my $ch = $prompt_win->getch();
+  while ( $ch eq KEY_MOUSE ) {
+    my $ev = '';
+    getmouse($ev);
+    $ch = $prompt_win->getch();
+  }
+  return $ch;
+}
+
 #------------------------------------------------------------------
 
 sub prompt_chr {
@@ -2209,7 +2328,7 @@ sub prompt_chr {
   echo();
   curs_set(1);
   &draw_prompt($prompt);
-  $ch = $prompt_win->getch();
+  $ch = &prompt_getch();
   if ( $ch eq KEY_RESIZE ) {
     # FIXME resize
     # This code chunk is also in getch.pl, except the call to draw_prompt_cur.
@@ -3146,6 +3265,14 @@ sub parse_vitrc {
           }
           $nowait = ($configval eq "no");
         }
+        elsif ($configname eq "mouse") {
+          if (!&sanitycheck_bool($configval)) {
+            print STDERR "ERROR: boolean config variable '$configname' must ".
+                         "be set to 'yes' or 'no'.\n";
+            exit(1);
+          }
+          $mouse = ($configval eq "yes");
+        }
       }
     }
     close(IN);
@@ -3240,10 +3367,16 @@ __DATA__
  nav   j               move down one line
  nav   DownArrow       move down one line
  cmd   Spacebar        mark (or unmark) the current task and move to the next one
+ cmd   V               mark every task from the last one marked or unmarked to this one
  cmd   Esc             clear the marks
  cmd   (marked)        d D m P p T w A act on every marked task, and clear the marks after;
                        D on an annotation line denotates that line; the rest: the current task.
                        Marked lines: color.vit.marked in the taskrc (black on yellow)
+ mouse click           select the line;  double-click: the task's info (as Enter)
+ mouse ctrl-click      mark (or unmark) the task; a right click does the same
+ mouse shift-click     mark a range (as V); the wheel moves three lines.  Many terminals
+                       keep shift-click and the right button for themselves: V and ctrl-click
+                       always work.  set mouse=no in the vitrc leaves the mouse to the terminal
  nav   :N              move to task number N
  nav   0               move to the first line
  nav   gg              move to the first line
