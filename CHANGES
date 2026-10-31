@@ -1,3 +1,4 @@
+ Sat Oct 31 2026 - This is VIT 1.4.3: hooks get no terminal behind the screen; a hook's reason shown
  Sat Oct 31 2026 - a hook's reason (tw_needs_pty's "reason", a spooled command's <unique>.reason)
                     is shown in the question, cut to fit; a spooled command is shown in the
                     terminal before it runs
