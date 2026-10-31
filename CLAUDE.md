@@ -18,7 +18,7 @@ VIT 1.x, Steve Rader's Perl/Curses full-screen client for Taskwarrior, being ado
 | `vit.pl` | Globals, `use` lines, `require`s, main sequence |
 | `getch.pl` | The key loop: one `if` per key in `CASE:` (each ends with `last CASE`) |
 | `cmds.pl` | Key actions: add, annotate, done, delete/denotate, modify, priority, project, tags, wait, `:!` |
-| `exec.pl` | Every `task` call, no shell: `task_open` (argv, `rc.hooks=off` on reads, the TW_* contract on writes, 15 s `timeout`), `task_read`, `task_check`, `task_exec` (a captured write: `tw_needs_pty` → the terminal, then the spool), `shell_exec` (curses suspended, real terminal; argv, or a string for `/bin/sh` for `:!` maps), `split_args`/`quote_args` |
+| `exec.pl` | Every `task` call, no shell: `task_open` (argv, own session so no `/dev/tty`, `rc.hooks=off` on reads, the TW_* contract on writes, 15 s `timeout`), `task_read`, `task_check`, `task_exec` (a captured write: `tw_needs_pty` → the terminal, then the spool), `shell_exec` (curses suspended, real terminal; argv, or a string for `/bin/sh` for `:!` maps), `split_args`/`quote_args` |
 | `read.pl` | `read_report`: runs `stat`, `projects`, `tags` and the report; builds `@report2taskid` |
 | `env.pl` | Startup: `task show` for colors, reports, `default.command` |
 | `color.pl`, `draw.pl`, `screen.pl`, `curses.pl` | ANSI parsing into curses color pairs, drawing |

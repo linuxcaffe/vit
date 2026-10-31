@@ -1,3 +1,6 @@
+ Sat Oct 31 2026 - captured task calls run in their own session, with no controlling terminal: a
+                    hook that ignores TW_NOINTERACT and opens /dev/tty (deps-mgmt) can no longer
+                    read keys behind the screen; it gets no answer, as under tw-web
  Mon Oct 26 2026 - This is VIT 1.4.2: settings in ~/.task/config/vitrc
  Mon Oct 26 2026 - settings from ~/.task/config/vitrc (synced with the task folder) when it exists,
                     else ~/.vitrc as before

@@ -45,7 +45,9 @@ sub quote_args {
 #   bare => 1     no rc. overrides at all (task --version takes none)
 #   ui => 1       through ui() (tw when installed): the report on screen;
 #                 ARGS must then put the user's words before any rc. override
-# stdin is /dev/null, so task never waits for an answer.
+# stdin is /dev/null and the child has its own session (no controlling
+# terminal, so no /dev/tty): task, and a hook that ignores TW_NOINTERACT,
+# never waits for an answer or reads keys meant for vit's screen.
 
 sub task_open {
   my ($opt, @args) = @_;
@@ -75,6 +77,7 @@ sub task_open {
     $SIG{__DIE__} = 'DEFAULT';
     $SIG{__WARN__} = 'DEFAULT';
     @ENV{keys %env} = values %env;
+    POSIX::setsid();
     open(STDIN, '<', '/dev/null');
     if ( $opt->{errfile} ) {
       open(STDERR, '>', $opt->{errfile});
