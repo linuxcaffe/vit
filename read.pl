@@ -167,12 +167,14 @@ sub inner_read_report {
   # (rc.context=… typed, or tw's @_ and @: name), which the header shows
   my $errf = File::Temp->new(TEMPLATE => 'vit-err.XXXXXX', TMPDIR => 1);
   *IN = &task_open({ read => 1, ui => 1, errfile => $errf->filename }, &split_args($current_command),
-                   "rc.defaultwidth=$REPORT_COLS", 'rc.defaultheight=0', 'rc._forcecolor=on');
+                   "rc.defaultwidth=$REPORT_COLS", 'rc.defaultheight=0', 'rc._forcecolor=on',
+                   $nice ? ( 'rc.dateformat.report=' . &nice_dateformat() ) : ());
+  my @lines = map { chop; &decode_utf8($_) } <IN>;
+  close(IN);
+  @lines = &nice_lines(@lines) if $nice;
   my $i = 0;
   my $prev_id;
-  while(<IN>) {
-    chop;
-    $_ = &decode_utf8($_);
+  for (@lines) {
     if ( $_ =~ /^\s*$/ ) { next; }
     # a header's separator (2.6.2's summary prints one, colors or not)
     if ( $_ =~ /^(\x1b.*?m)*[\s-]*-[\s-]*(\x1b.*?m)*$/ ) { next; }
@@ -205,7 +207,6 @@ sub inner_read_report {
     $prev_id = $report2taskid[$i];
     $i++;
   }
-  close(IN);
 
   # IDs shift when the data changes behind vit (tw-web, a sync): keep each
   # line's UUID, and act on that. The context comes in the same call.

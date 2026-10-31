@@ -1,3 +1,8 @@
+ Sat Oct 31 2026 - nice dates and times: with the taskrc's nicedates=on (nicedates.rc), date columns
+                    read Yesterday / Today / Tomorrow 3pm / Thursday / Nov20 / Apr1'27; the report
+                    runs with rc.dateformat.report as wide as the widest label, so the columns stay
+                    aligned. nice.format.* and nice.conceal-times shape them (an empty
+                    nice.format.time: 3pm, 3:30pm); Ctrl-N flips them; vitrc set nicedates=no|yes
  Sat Oct 31 2026 - This is VIT 1.4.4: the mouse (click, double-click, ctrl-click marks, wheel); V
                     marks a range
  Sat Oct 31 2026 - mouse: a click selects, a double-click shows the info (Enter), ctrl-click or a

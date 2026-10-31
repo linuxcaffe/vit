@@ -27,6 +27,10 @@ any columns, your taskrc's colors: nothing to configure twice.
 - **Several at once:** Spacebar marks a task (and moves to the next); with tasks marked, `d` `D` `m` `P`
   `p` `T` `w` `A` act on all of them, after vit asks, then the marks clear. Esc clears them by hand.
   Marked lines are black on yellow with a `*` beside them (`color.vit.marked` in your taskrc)
+- **Nice dates:** with `nicedates=on` in your taskrc (nicedates.rc), date columns read Yesterday, Today,
+  Tomorrow 3pm, Thursday, Nov20, Apr1'27, and the columns stay aligned (vit has task size them for the
+  widest label). `nice.format.*` and `nice.conceal-times` shape them; Ctrl-N flips them;
+  `set nicedates=no` in the vitrc turns them off for vit
 - **Mouse:** click selects, double-click shows the info, ctrl-click (or a right click) marks, shift-click
   marks a range (`V` from the keyboard), the wheel scrolls. Many terminals keep shift-click and the right
   button for themselves; `V` and ctrl-click always work. `set mouse=no` in the vitrc gives the mouse

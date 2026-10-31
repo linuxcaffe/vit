@@ -110,6 +110,12 @@ sub init_task_env {
     print "Fatal error: default.command (\"$default_command\") must print an \"ID\" column\n";
     exit(1);
   }
+  # nicedates.rc's settings (not task's own: task show lists them apart)
+  my $fh = &task_open({ read => 1 }, '_show');
+  my @show = <$fh>;
+  &task_close($fh);
+  chomp @show;
+  &nice_config(@show);
   # whatever the taskrc defines (2.6.2's default: H,M,L,), for P
   @priority_values = grep { $_ ne '' } split(/,/, &task_get('rc.uda.priority.values'));
   &audit("ENV default command is \"$default_command\"");

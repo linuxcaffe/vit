@@ -138,3 +138,12 @@ double_click() { click "$1"; click "$1"; }
 wheel() { if [ "$1" = up ]; then mouse 64 10 5; else mouse 65 10 5; fi; }   # wheel up|down
 # mouse_on — vit has the terminal's mouse reporting on
 mouse_on() { test "$(tmux -L "$TMUX_SOCK" display -p '#{mouse_any_flag}')" = 1; }
+
+# restart_vit ARGS… — quit this vit's tmux server, wait until it's gone, start vit again
+restart_vit() {
+  tmux -L "$TMUX_SOCK" kill-server 2>/dev/null
+  local n=50
+  while (( n-- > 0 )) && tmux -L "$TMUX_SOCK" has-session 2>/dev/null; do sleep 0.1; done
+  rm -f "${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)/$TMUX_SOCK"
+  start_vit "$@"
+}

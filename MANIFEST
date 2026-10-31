@@ -21,6 +21,7 @@ exec.pl
 getch.pl
 misc.pl
 mouse.pl
+nice.pl
 prompt.pl
 read.pl
 screen.pl

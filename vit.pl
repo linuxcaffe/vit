@@ -30,6 +30,7 @@ use I18N::Langinfo qw(langinfo CODESET);
 use Encode;
 use Text::CharWidth qw(mbswidth);
 use Text::ParseWords qw(shellwords);
+use Time::Local qw(timelocal);
 use File::Temp ();
 use File::Path qw(make_path);
 
@@ -105,6 +106,12 @@ our $search_pat = undef;
 our $selection_attrs = '';
 our %marked = ();          # multi-select: marked tasks by UUID (space); cleared after a command uses them
 our $marked_attrs = '';
+our $nice = 0;             # nice dates and times on (nice.pl): the taskrc's nicedates=, the vitrc, Ctrl-N
+our %nice_cfg = ();        # the taskrc's nicedates and nice.* settings
+our $nice_width;           # the date columns' width, from the formats (nice_dateformat)
+our @nice_months = qw(January February March April May June July August September
+                     October November December);
+our @nice_days = qw(Sunday Monday Tuesday Wednesday Thursday Friday Saturday);
 our $mark_anchor;          # the last task marked or unmarked, by UUID: V and shift-click mark from it
 our $gutter_win;           # screen column 0 beside the report: '*' on a marked line
 our @taskid2report = ();
@@ -136,6 +143,7 @@ my $burndown = "no";
 my $confirmation = 1;
 my $nowait = undef;
 my $mouse = 1;
+my $nicedates_vitrc;       # set nicedates=yes|no: overrides the taskrc's nicedates=
 
 require 'args.pl';
 require 'cmdline.pl';
@@ -148,6 +156,7 @@ require 'env.pl';
 require 'getch.pl';
 require 'misc.pl';
 require 'mouse.pl';
+require 'nice.pl';
 require 'prompt.pl';
 require 'read.pl';
 require 'screen.pl';

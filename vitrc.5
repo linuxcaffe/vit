@@ -89,6 +89,13 @@ modifications to a task are made.  By default, VIT will show the output of the
 task command and wait for enter.
 
 .TP
+.B nicedates=yes|no
+Overrides the taskrc's nicedates=on|off (nicedates.rc) for VIT: date columns
+read Yesterday, Today, Tomorrow 3pm, Thursday, Nov20, Apr1'27. The taskrc's
+nice.format.* and nice.conceal-times settings shape them. Ctrl-N flips them
+for the session.
+
+.TP
 .B mouse=yes
 When set to "no", VIT leaves the mouse to the terminal (to select and copy text
 without holding Shift). By default a click selects a line, a double-click shows

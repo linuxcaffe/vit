@@ -53,6 +53,9 @@
  cmd   N               move to the previous match when searching
  cmd   n               move to the next match when searching
  nav   ^l              refresh (redraw) the display
+ cmd   ^n              nice dates on/off for this session (Yesterday, Today, Tomorrow 3pm, Thursday,
+                       Nov20, Apr1'27): the taskrc's nicedates=on (nicedates.rc) turns them on,
+                       set nicedates=no in the vitrc off; nice.format.* and nice.conceal-times shape them
  nav   ^f              scroll down (forward) one page
  nav   PgDn            scroll down (forward) one page
  nav   ^b              scroll up (back) one page

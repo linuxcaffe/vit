@@ -20,6 +20,7 @@ VIT 1.x, Steve Rader's Perl/Curses full-screen client for Taskwarrior, being ado
 | `cmds.pl` | Key actions: add, annotate, done, delete/denotate, modify, priority, project, tags, wait, `:!`; multi-select (`%marked` by UUID, `toggle_mark`, `targets`: the marked tasks, else the cursor's; the whitelist is the commands that call `targets`) |
 | `exec.pl` | Every `task` call, no shell: `task_open` (argv, own session so no `/dev/tty`, `rc.hooks=off` on reads, the TW_* contract on writes, 15 s `timeout`), `task_read`, `task_check`, `task_exec` (a captured write: `tw_needs_pty` → the terminal, then the spool; a hook's `reason` / `.reason` in the question), `shell_exec` (curses suspended, real terminal; argv, or a string for `/bin/sh` for `:!` maps), `split_args`/`quote_args` |
 | `mouse.pl` | `KEY_MOUSE`: click selects, double-click = Enter, ctrl/right-click toggles a mark, shift-click = `V` (`mark_range`), wheel ±3 (`move_selection`); `set mouse=no` skips `mousemask`. `prompt_getch` drops clicks in prompts. Tests send X10 bytes (`click`, `wheel` in `lib.sh`) |
+| `nice.pl` | Nice dates: `nice_config` (task `_show`: `nicedates`, `nice.*`), `nice_dateformat` (`rc.dateformat.report` = `Y-M-D H:N` padded to the widest label), `nice_lines` (column spans from the header's coloured labels or the dash rule; a column whose cells are all blank or that form is a date column; each cell → its label, same width). Ctrl-N flips `$nice` |
 | `read.pl` | `read_report`: runs `stat`, `projects`, `tags` and the report; builds `@report2taskid` |
 | `env.pl` | Startup: `task show` for colors, reports, `default.command` |
 | `color.pl`, `draw.pl`, `screen.pl`, `curses.pl` | ANSI parsing into curses color pairs, drawing |
@@ -106,6 +107,9 @@ tests/run.sh stale_id      # one test
 `~/dev/awesome-taskwarrior` (`registry.d/`, `installers/`). The built **`vit` is committed** at each release
 (the `.meta` checksum covers it), with the man pages and `README.md`.
 
+0. **Features go on a branch, merged at release.** `base_url` serves the installer's files from the
+   head of `1.3`, so a README or man-page change pushed there between releases breaks the published
+   checksums until the next release.
 1. Set `VERSION` (no `-dev`), `version=` in `vit.meta`, `VERSION=` in `vit.install`; a `CHANGES` line.
 2. `./build.sh vit` (a release build has no date or hash, so it's reproducible); the pre-commit hook
    refuses a staged `vit` that isn't a fresh build.

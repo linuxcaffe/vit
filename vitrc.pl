@@ -73,6 +73,14 @@ sub parse_vitrc {
           }
           $mouse = ($configval eq "yes");
         }
+        elsif ($configname eq "nicedates") {
+          if (!&sanitycheck_bool($configval)) {
+            print STDERR "ERROR: boolean config variable '$configname' must ".
+                         "be set to 'yes' or 'no'.\n";
+            exit(1);
+          }
+          $nicedates_vitrc = $configval;
+        }
       }
     }
     close(IN);

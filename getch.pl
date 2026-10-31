@@ -245,6 +245,13 @@ sub getch_loop {
         last CASE;
       }
 
+      if ( $ch eq "\cn" ) {
+        $nice = ! $nice;
+        $feedback_msg = $nice ? 'Nice dates on.' : 'Nice dates off.';
+        $reread_needed = 1;
+        last CASE;
+      }
+
       if ( $ch eq 'V' ) {
         &mark_range();
         last CASE;
