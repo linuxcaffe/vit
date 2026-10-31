@@ -176,12 +176,17 @@ sub task_exec {
   my $es = 0;
   my $result = '';
   my $needs_pty = 0;
+  my $reason = '';
   my $fh = &task_open({ write => 1, err => 'merge' }, @args);
   while(<$fh>) {
     chomp;
     $_ =~ s/\x1b.*?m//g; # decolorize
     if ( $_ =~ /^\w+ override:?/ ) { next; }
-    if ( $_ =~ /^\s*\{.*"type"\s*:\s*"tw_needs_pty"/ ) { $needs_pty = 1; next; }
+    if ( $_ =~ /^\s*\{.*"type"\s*:\s*"tw_needs_pty"/ ) {
+      $needs_pty = 1;
+      $reason = &json_string($1) if /"reason"\s*:\s*"((?:[^"\\]|\\.)*)"/;
+      next;
+    }
     if ( $_ =~ /TW_INTERACTIVE_REQUIRED/ ) { $needs_pty = 1; next; }
     $result .= "$_ ";
   }
@@ -190,7 +195,10 @@ sub task_exec {
     &audit("FAILED \"" . quote_args(@args) . "\" returned exit status $es");
   }
   if ( $es != 0 && $needs_pty ) {
-    if ( &prompt_y("A hook needs a terminal for 'task " . quote_args(@args) . "'. Run it here? ") ) {
+    my $ask = ( $reason ne '' )
+            ? &fit_prompt("$reason.", " Run it in the terminal? ")
+            : &fit_prompt("A hook needs a terminal for 'task " . quote_args(@args) . "'.", " Run it here? ");
+    if ( &prompt_y($ask) ) {
       $es = &shell_exec([&ui(), @args], 'forcewait');
       $result = ( $es == 0 ) ? "Ran in the terminal." : "Failed in the terminal.";
     } else {
@@ -211,21 +219,64 @@ sub spool_dir {
   return $spool_dir;
 }
 
-# drain_spool -- offer each command a hook left in TW_SPOOL_DIR, once
+# first_line FILE -- its first line, and the file removed ('' if none)
+sub first_line {
+  my ($f) = @_;
+  my $line;
+  if ( open(my $in, '<', $f) ) {
+    $line = <$in>;
+    close($in);
+  }
+  unlink($f);
+  $line = '' if ! defined $line;
+  chomp $line;
+  return $line;
+}
+
+# drain_spool -- offer each command a hook left in TW_SPOOL_DIR, once. A
+# <unique>.reason beside <unique>.cmd says what it's for: then the question
+# shows the reason, and the terminal shows the command before it runs.
 sub drain_spool {
   return if ! defined $spool_dir;
   for my $f ( sort glob("$spool_dir/*.cmd") ) {
-    open(my $in, '<', $f) or next;
-    my $cmd = <$in>;
-    close($in);
-    unlink($f);
-    next if ! defined $cmd;
-    chomp $cmd;
+    my $cmd = &first_line($f);
+    (my $rf = $f) =~ s/\.cmd$/.reason/;
+    my $reason = ( -e $rf ) ? &first_line($rf) : '';
+    $reason =~ s/[\x00-\x1f\x7f]+/ /g;
+    $reason =~ s/^\s+|\s+$//g;
     next if $cmd eq '';
-    if ( &prompt_y("A hook asks to run: $cmd  Run it? ") ) {
-      &shell_exec($cmd, 'forcewait');
+    my $ask = ( $reason ne '' )
+            ? &fit_prompt("$reason.", " Run it in the terminal? ")
+            : &fit_prompt("A hook asks to run: $cmd", "  Run it? ");
+    if ( &prompt_y($ask) ) {
+      &shell_exec($cmd, 'forcewait', 'show');
     }
   }
+  unlink(glob("$spool_dir/*.reason"));   # a reason without its command
+}
+
+# json_string TEXT -- a JSON string's contents (between the quotes) as text
+# for the prompt line: escapes decoded, control characters as spaces
+sub json_string {
+  my ($s) = @_;
+  my %esc = ( 'b' => ' ', 'f' => ' ', 'n' => ' ', 'r' => ' ', 't' => ' ' );
+  $s =~ s{\\(?:u([0-9a-fA-F]{4})|(.))}{
+    defined $1 ? chr(hex $1) : ( $esc{$2} // $2 )
+  }ge;
+  $s =~ s/[\x00-\x1f\x7f]+/ /g;
+  $s =~ s/^\s+|\s+$//g;
+  return $s;
+}
+
+# fit_prompt TEXT, QUESTION -- one prompt line: TEXT cut (with ...) so that
+# QUESTION still fits on the screen
+sub fit_prompt {
+  my ($text, $q) = @_;
+  my $room = $COLS - 1 - length($q);
+  if ( length($text) > $room ) {
+    $text = ( $room > 3 ) ? substr($text, 0, $room - 3) . '...' : '';
+  }
+  return $text . $q;
 }
 
 #------------------------------------------------------------------
@@ -237,18 +288,19 @@ sub exited_successfully {
 }
 
 #------------------------------------------------------------------
-# shell_exec CMD, MODE -- run CMD in the terminal (curses suspended).
+# shell_exec CMD, MODE, SHOW -- run CMD in the terminal (curses suspended);
+# SHOW: print CMD first (vit -audit always does).
 # CMD is an array ref of argv (no shell), or a string for /bin/sh (the
 # user's :! commands, spooled hook commands). Hooks get a real terminal:
 # TW_NOINTERACT and the rest of the no-terminal contract are cleared.
 # Returns the exit status.
 
 sub shell_exec {
-  my ($cmd,$mode) = @_;
+  my ($cmd,$mode,$show) = @_;
   endwin();
   if ( $clear ne 'NOT_FOUND' ) { system { $clear } $clear; }
   my $shown = ref($cmd) ? quote_args(@$cmd) : $cmd;
-  if ( $audit ) {
+  if ( $audit || $show ) {
     print "$shown\r\n";
   }
   my $pid = fork();

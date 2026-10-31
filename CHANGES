@@ -1,3 +1,6 @@
+ Sat Oct 31 2026 - a hook's reason (tw_needs_pty's "reason", a spooled command's <unique>.reason)
+                    is shown in the question, cut to fit; a spooled command is shown in the
+                    terminal before it runs
  Sat Oct 31 2026 - captured task calls run in their own session, with no controlling terminal: a
                     hook that ignores TW_NOINTERACT and opens /dev/tty (deps-mgmt) can no longer
                     read keys behind the screen; it gets no answer, as under tw-web
