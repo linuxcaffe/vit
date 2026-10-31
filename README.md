@@ -24,6 +24,9 @@ any columns, your taskrc's colors: nothing to configure twice.
 - **Changing the selected task:** `a` add, `d` done, `b` start/stop, `A` annotate, `D` delete (or denotate
   on an annotation line), `m` modify, `P` priority, `p` project, `T` tags, `w` wait, `e` edit, `u` undo,
   `=` or Enter for its information
+- **Several at once:** Spacebar marks a task (and moves to the next); with tasks marked, `d` `D` `m` `P`
+  `p` `T` `w` `A` act on all of them, after vit asks, then the marks clear. Esc clears them by hand.
+  Marked lines are black on yellow with a `*` beside them (`color.vit.marked` in your taskrc)
 - **`s`** syncs: `gittw sync` when gittw is installed, else `task sync`
 - **`@`** changes the context (the header shows the active one)
 - **`:h`** shows all the keys; `:h TEXT` the lines containing TEXT
@@ -39,7 +42,8 @@ any columns, your taskrc's colors: nothing to configure twice.
 - **Hooks:** reads run with `rc.hooks=off`, so a refresh doesn't start every on-launch and on-exit hook.
   Writes follow the fleet's client contract (`CONVENTIONS.md`): hooks are told there's no terminal
   (`TW_NOINTERACT`, `TW_CLIENT=vit`); one that needs a terminal (`tw_needs_pty`) is offered one, and
-  commands a hook spools are offered after the change.
+  commands a hook spools are offered after the change, with the hook's reason when it gives one. A hook
+  that ignores `TW_NOINTERACT` finds no terminal to read your keys from behind the screen.
 - **Priority:** `P` offers your `uda.priority.values`, one key each.
 - **Context:** vit follows Taskwarrior's context, as `task` does, and shows it in the header.
 

@@ -10,7 +10,7 @@ base_url=https://raw.githubusercontent.com/linuxcaffe/vit/1.3
 files=vit:script,vit.1:doc,vitrc.5:doc,README.md:doc
 tags=tui,terminal,ui,interface,vim,curses
 
-checksums=768d0c626988666f867ae2ae77283b6c1c9daa233ced31bc976c2f2072da31b4,d836c855d702913a736504df13717bc2cb0db78360409fb1835b0d7d7b75c518,b797595462f09707513be24ad99eb31f4599aa80e98a54fa96f6d84dbc80276d,3361ded6db0a86653dc76e41829c048bfbb5a3657f53b6ce6ec81fd7fd891ce6
+checksums=116913d355fd8928ed7deeb8f6979252a32a2eb81d1a04a7418123906a9ffd7c,9c7fd21339538c0ad313fbd44f29e66b78d00621abd80169bfbcbb13c4e4ea7b,b797595462f09707513be24ad99eb31f4599aa80e98a54fa96f6d84dbc80276d,76702bb394274744bb631f712b76b675f370b0652141887af2e6aecf81a51f80
 
 author=Steve Rader (original), Scott Kostyshak (maintainer to 2018), linuxcaffe + Claude (fleet)
 license=GPL-3.0-or-later

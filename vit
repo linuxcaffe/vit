@@ -103,6 +103,9 @@ our $context_name = '';    # rc.context at the last read (the header shows it)  
 our $search_direction = 1;
 our $search_pat = undef;
 our $selection_attrs = '';
+our %marked = ();          # multi-select: marked tasks by UUID (space); cleared after a command uses them
+our $marked_attrs = '';
+our $gutter_win;           # screen column 0 beside the report: '*' on a marked line
 our @taskid2report = ();
 our $tasks_completed = 0;
 our $tasks_pending = 0;
@@ -117,7 +120,8 @@ our $COLOR_REPORT_HEADER = 2;
 our $COLOR_SELECTION = 3;
 our $COLOR_EMPTY_LINE = 4;
 our $COLOR_ERRORS = 5;
-our $next_color_pair = 6;
+our $COLOR_MARKED = 6;
+our $next_color_pair = 7;
 
 our %shortcuts;
 our $cur_pos;
@@ -322,6 +326,64 @@ sub show_help {
 # Copyright 2013 - 2018, Scott Kostyshak
 
 #------------------------------------------------------------------
+# Multi-select: %marked holds the marked tasks by UUID. Space toggles the
+# cursor's task (every line of it) and moves down. d D m P p T w A act on
+# every marked task when there are any (targets), and clear the marks when
+# they succeed; every other command acts on the cursor task. Esc clears them.
+
+sub is_marked {
+  my ($i) = @_;
+  my $uuid = $report2uuid[$i];
+  return defined $uuid && $marked{$uuid};
+}
+
+# toggle_mark -- mark or unmark the cursor's task, then move to the next task
+# (past its annotation lines: a mark is the whole task)
+sub toggle_mark {
+  my $uuid = &selected_uuid() // return;
+  if ( $marked{$uuid} ) { delete $marked{$uuid}; } else { $marked{$uuid} = 1; }
+  my $i = $task_selected_idx;
+  $i++ while $i < $#report_tokens && defined $report2uuid[$i] && $report2uuid[$i] eq $uuid;
+  if ( defined $report2uuid[$i] && $report2uuid[$i] ne $uuid ) {
+    $task_selected_idx = $i;
+    if ( $task_selected_idx >= $display_start_idx + $REPORT_LINES ) {
+      $display_start_idx = $task_selected_idx - $REPORT_LINES + 1;
+    }
+  }
+  $refresh_needed = 1;
+}
+
+# clear_marks -- how many there were
+sub clear_marks {
+  my $n = scalar(keys %marked);
+  %marked = ();
+  return $n;
+}
+
+# prune_marks -- after a read: a task that left the report isn't marked any more
+sub prune_marks {
+  my %shown = map { $_ => 1 } grep { defined } @report2uuid;
+  delete @marked{ grep { ! $shown{$_} } keys %marked };
+}
+
+# targets -- the tasks a whitelisted command acts on: the marked ones, in
+# report order, else the cursor's (undef and an error shown: no task there)
+sub targets {
+  if ( %marked ) {
+    my %seen;
+    return grep { defined && $marked{$_} && !$seen{$_}++ } @report2uuid;
+  }
+  my $uuid = &selected_uuid() // return ();
+  return ($uuid);
+}
+
+# what targets() acts on, for a prompt: " (3 marked)" or ''
+sub marked_label {
+  my $n = scalar(keys %marked);
+  return $n ? " ($n marked)" : '';
+}
+
+#------------------------------------------------------------------
 
 sub prompt_quit {
   my $yes;
@@ -358,20 +420,21 @@ sub task_add {
 
 sub task_annotate {
   my $id = $report2taskid[$task_selected_idx];
-  my $uuid = &selected_uuid() // return;
-  my $str = &prompt_str("Annotate: ");
+  my @uuids = &targets() or return;
+  my $str = &prompt_str("Annotate" . &marked_label() . ": ");
   if ( $str eq '' ) {
     &draw_prompt_line('');
     return;
   }
   # free text: one argument after --, nothing in it is parsed
-  my ($es,$result) = &task_exec($uuid, 'annotate', '--', $str);
+  my ($es,$result) = &task_exec(@uuids, 'annotate', '--', $str);
   if ( $es != 0 ) {
     $error_msg = $result;
     &draw_error_msg();
     return;
   }
-  $feedback_msg = "Annotated task $id.";
+  my $n = &clear_marks();
+  $feedback_msg = $n ? "Annotated $n tasks." : "Annotated task $id.";
   &draw_feedback_msg();
   $reread_needed = 1;
 }
@@ -389,8 +452,12 @@ sub task_den_or_del {
              ? "task"
              : "annotation";
   $str =~ s/\s+$//;
+  # an annotation line: that annotation alone; a task: the marked tasks, if any
+  my @uuids = ( $target eq "task" ) ? &targets() : ($uuid);
+  return if ! @uuids;
+  my $n = ( $target eq "task" ) ? scalar(keys %marked) : 0;
   if ($confirmation) {
-    $yes = &prompt_y("Delete current $target? ");
+    $yes = &prompt_y($n ? "Delete $n marked tasks? " : "Delete current $target? ");
     if ( ! $yes ) {
       &draw_prompt_line('');
       return;
@@ -398,10 +465,17 @@ sub task_den_or_del {
   }
   my ($es,$result) = ($target eq "annotation")
                    ? &task_exec($uuid, 'denotate', '--', $str)
-                   : &task_exec($uuid, 'delete');
+                   : &task_exec(@uuids, 'delete');
   if ( $es != 0 ) {
     $error_msg = $result;
     &draw_error_msg();
+    return;
+  }
+  if ( $n ) {
+    &clear_marks();
+    $feedback_msg = "Deleted $n tasks.";
+    &draw_feedback_msg();
+    $reread_needed = 1;
     return;
   }
   $feedback_msg = "Deleted $target.";
@@ -450,18 +524,26 @@ sub task_start_stop {
 sub task_done {
   my ($ch, $str, $yes);
   my $id = $report2taskid[$task_selected_idx];
-  my $uuid = &selected_uuid() // return;
+  my @uuids = &targets() or return;
+  my $n = scalar(keys %marked);
   if ($confirmation) {
-    $yes = &prompt_y("Mark task $id done? ");
+    $yes = &prompt_y($n ? "Mark $n marked tasks done? " : "Mark task $id done? ");
     if ( ! $yes ) {
       &draw_prompt_line('');
       return;
     }
   }
-  my ($es,$result) = &task_exec($uuid, 'done');
+  my ($es,$result) = &task_exec(@uuids, 'done');
   if ( $es != 0 ) {
     $error_msg = $result;
     &draw_error_msg();
+    return;
+  }
+  if ( $n ) {
+    &clear_marks();
+    $feedback_msg = "Marked $n tasks done.";
+    &draw_feedback_msg();
+    $reread_needed = 1;
     return;
   }
   $feedback_msg = "Marked task done.";
@@ -497,9 +579,9 @@ sub task_filter {
 
 sub task_modify {
   my @args = @_;
-  my $id = $report2taskid[$task_selected_idx];
-  my $uuid = &selected_uuid() // return;
-  &shell_exec([&ui(), $uuid, 'modify', @args],'wait');
+  my @uuids = &targets() or return;
+  my $es = &shell_exec([&ui(), @uuids, 'modify', @args],'wait');
+  &clear_marks() if &exited_successfully($es);
   $reread_needed = 1;
 }
 
@@ -507,8 +589,8 @@ sub task_modify {
 
 sub task_modify_prompt {
   my $id = $report2taskid[$task_selected_idx];
-  my $uuid = &selected_uuid() // return;
-  my $str = &prompt_str("Modify: ");
+  &targets() or return;
+  my $str = &prompt_str("Modify" . &marked_label() . ": ");
   if ( $str eq '' ) {
     &draw_prompt_line('');
     return;
@@ -521,32 +603,47 @@ sub task_modify_prompt {
 
 sub task_set_priority {
   my $id = $report2taskid[$task_selected_idx];
-  my $uuid = &selected_uuid() // return;
-  my $prio = &task_info('Priority');
+  my @uuids = &targets() or return;
+  my $n = scalar(keys %marked);
+  my $prio = $n ? undef : &task_info('Priority');   # several: no "unchanged" to skip
   my @values = @priority_values ? @priority_values : ('H', 'M', 'L');
   my $none = ( grep { lc($_) eq 'n' } @values ) ? '-' : 'n';
   my $p;
   if ( grep { length($_) != 1 } @values ) {
     # a value longer than one key: type it (tab completes)
-    $p = &match_priority(&prompt_str("Priority: "), $none, @values);
+    $p = &match_priority(&prompt_str("Priority" . &marked_label() . ": "), $none, @values);
   } else {
-    $p = &match_priority(&prompt_chr("Priority " . join(' ', @values) . " ($none: none): "),
+    $p = &match_priority(&prompt_chr("Priority" . &marked_label() . " " . join(' ', @values) . " ($none: none): "),
                          $none, @values);
   }
-  if ( defined $p && $p ne $prio ) {
-    my ($es,$result) = &task_exec($uuid, 'modify', "priority:$p");
+  if ( defined $p && ( ! defined $prio || $p ne $prio ) ) {
+    my ($es,$result) = &task_exec(@uuids, 'modify', "priority:$p");
     if ( $es != 0 ) {
       $error_msg = $result;
       &draw_error_msg();
       return;
     }
-    $feedback_msg = "Modified task $id.";
-    &flash_current_task();
+    &modified_feedback($id);
     $reread_needed = 1;
   }
   else {
     &draw_prompt_line('');
     return;
+  }
+}
+
+#------------------------------------------------------------------
+# modified_feedback ID -- after a modify: the marked tasks (marks cleared),
+# else the cursor's task (flashed)
+
+sub modified_feedback {
+  my ($id) = @_;
+  my $n = &clear_marks();
+  if ( $n ) {
+    $feedback_msg = "Modified $n tasks.";
+  } else {
+    $feedback_msg = "Modified task $id.";
+    &flash_current_task();
   }
 }
 
@@ -567,25 +664,23 @@ sub match_priority {
 
 sub task_set_project {
   my $id = $report2taskid[$task_selected_idx];
-  my $uuid = &selected_uuid() // return;
-  my $p = &prompt_str("Project: ");
+  my @uuids = &targets() or return;
+  my $p = &prompt_str("Project" . &marked_label() . ": ");
   if ( $p eq '' ) {
     &draw_prompt_line('');
     return;
   }
-  my $proj = &task_info('Project');
-  if ( $p eq $proj ) {
+  if ( ! %marked && $p eq &task_info('Project') ) {
     beep();
     return;
   }
-  my ($es,$result) = &task_exec($uuid, 'modify', "project:$p");
+  my ($es,$result) = &task_exec(@uuids, 'modify', "project:$p");
   if ( $es != 0 ) {
     $error_msg = $result;
     &draw_error_msg();
     return;
   }
-  $feedback_msg = "Modified task $id.";
-  &flash_current_task();
+  &modified_feedback($id);
   $reread_needed = 1;
 }
 
@@ -593,20 +688,19 @@ sub task_set_project {
 
 sub task_set_wait {
   my $id = $report2taskid[$task_selected_idx];
-  my $uuid = &selected_uuid() // return;
-  my $w = &prompt_str("Wait: ");
+  my @uuids = &targets() or return;
+  my $w = &prompt_str("Wait" . &marked_label() . ": ");
   if ( $w eq '' ) {
     &draw_prompt_line('');
     return;
   }
-  my ($es,$result) = &task_exec($uuid, 'modify', "wait:$w");
+  my ($es,$result) = &task_exec(@uuids, 'modify', "wait:$w");
   if ( $es != 0 ) {
     $error_msg = $result;
     &draw_error_msg();
     return;
   }
-  $feedback_msg = "Modified task $id.";
-  &flash_current_task();
+  &modified_feedback($id);
   $reread_needed = 1;
 }
 
@@ -614,8 +708,8 @@ sub task_set_wait {
 
 sub task_set_tag {
   my $id = $report2taskid[$task_selected_idx];
-  my $uuid = &selected_uuid() // return;
-  my $tags = &prompt_str("Tag: ");
+  my @uuids = &targets() or return;
+  my $tags = &prompt_str("Tag" . &marked_label() . ": ");
   if ( $tags eq '' ) {
     &draw_prompt_line('');
     return;
@@ -640,7 +734,7 @@ sub task_set_tag {
       $t = $mod . $t;
     }
 
-    my ($es,$result) = &task_exec($uuid, 'modify', $t);
+    my ($es,$result) = &task_exec(@uuids, 'modify', $t);
     if ( $es != 0 ) {
       $error_msg = $result;
       &draw_error_msg();
@@ -648,8 +742,7 @@ sub task_set_tag {
     }
   }
 
-  $feedback_msg = "Modified task $id.";
-  &flash_current_task();
+  &modified_feedback($id);
   $reread_needed = 1;
 }
 
@@ -851,6 +944,7 @@ sub init_curses {
   init_pair($COLOR_ERRORS,COLOR_WHITE,COLOR_RED);
   if ( $m eq 'init' ) {
     init_pair($COLOR_SELECTION,COLOR_WHITE,COLOR_BLUE);
+    init_pair($COLOR_MARKED,COLOR_BLACK,COLOR_YELLOW);
   }
   init_pair($COLOR_EMPTY_LINE,COLOR_BLUE,-1); # blue foreground
   my $HEADER_SIZE = 3;
@@ -859,6 +953,7 @@ sub init_curses {
   $header_win = newwin($HEADER_SIZE, $COLS, 0, 0);
   $report_win = newwin($REPORT_LINES+$HEADER_SIZE, $REPORT_COLS+2, 3, 1);
   $prompt_win = newwin(1, $COLS, $LINES-1, 0);
+  $gutter_win = newwin($REPORT_LINES, 1, 3, 0);
   keypad($report_win, 1);
   keypad($prompt_win, 1);
 }
@@ -965,12 +1060,19 @@ sub draw_report_line {
   my ($i,$line,$mode) = @_;
   my ($x, $t, $cp, $str);
   $x = 0;
-  if ( $mode eq 'with-selection' && $i == $task_selected_idx ) {
-    $report_win->attron(COLOR_PAIR($COLOR_SELECTION));
-    &set_attron($report_win,$selection_attrs);
+  # the cursor line in color.vit.selection, a marked line in color.vit.marked,
+  # any other line in the report's own colours
+  my $sel = ( $mode eq 'with-selection' && $i == $task_selected_idx );
+  my $mark = ( ! $sel && &is_marked($i) );
+  my ($fixed_cp, $fixed_attrs) = $sel  ? ($COLOR_SELECTION, $selection_attrs)
+                               : $mark ? ($COLOR_MARKED, $marked_attrs)
+                               :         (undef, '');
+  if ( defined $fixed_cp ) {
+    $report_win->attron(COLOR_PAIR($fixed_cp));
+    &set_attron($report_win,$fixed_attrs);
   }
   for $t (0 .. $#{ $report_tokens[$i] } ) {
-    if ( $mode eq 'without-selection' || $i != $task_selected_idx ) {
+    if ( ! defined $fixed_cp ) {
       my $fg = $report_colors_fg[$i][$t];
       my $bg = $report_colors_bg[$i][$t];
       $cp = &get_color_pair($fg,$bg);
@@ -981,7 +1083,7 @@ sub draw_report_line {
     my $tok = $report_tokens[$i][$t];
     $report_win->addstr($line,$x,$tok);
     &set_attroff($report_win,$report_attrs[$i][$t]);
-    if ( $mode eq 'without-selection' || $i != $task_selected_idx ) {
+    if ( ! defined $fixed_cp ) {
       $report_win->attroff(COLOR_PAIR($cp));
     }
     $x += mbswidth($tok);
@@ -1009,15 +1111,15 @@ sub draw_report_line {
     $repeat_count = 0;
   }
   $str = ' ' x $repeat_count;
-  if ( $mode eq 'without-selection' || $i != $task_selected_idx ) {
+  if ( ! defined $fixed_cp ) {
     $report_win->attron(COLOR_PAIR($cp));
   }
   &set_attron($report_win,$report_attrs[$i][$#{ $report_tokens[$i] }]);
   $report_win->addstr($line,$x,$str);
   &set_attroff($report_win,$report_attrs[$i][$#{ $report_tokens[$i] }]);
-  if ( $mode eq 'with-selection' && $i == $task_selected_idx ) {
-    $report_win->attroff(COLOR_PAIR($COLOR_SELECTION));
-    &set_attroff($report_win,$selection_attrs);
+  if ( defined $fixed_cp ) {
+    $report_win->attroff(COLOR_PAIR($fixed_cp));
+    &set_attroff($report_win,$fixed_attrs);
   } else {
     $report_win->attroff(COLOR_PAIR($cp));
   }
@@ -1148,6 +1250,16 @@ sub init_task_env {
       init_pair($COLOR_SELECTION,$parsed_colors_fg[1],$parsed_colors_bg[1]);
       next;
     }
+    if ( $_ =~ /color\.vit\.marked\s+(.*)/ ) {
+      my $str = $1;
+      $str =~ s/\x1b.*?m//g;
+      $str =~ s/^\s+//;
+      $str =~ s/\s+$//;
+      &extract_color($str,'vit marked');
+      $marked_attrs = $parsed_attrs[1];
+      init_pair($COLOR_MARKED,$parsed_colors_fg[1],$parsed_colors_bg[1]);
+      next;
+    }
     if ( $_ =~ /default.command\s+(.*)/ ) {
       $default_command = $1;
       $default_command =~ s/\x1b.*?m//g;
@@ -1259,7 +1371,7 @@ sub quote_args {
 # to read its output from, closed with task_close (or alias a bareword:
 # *IN = &task_open(...); while(<IN>) ...; close(IN) also sets $?). OPTS:
 #   read => 1     a read: rc.hooks=off (no on-launch/on-exit hooks)
-#   write => 1    a write: rc.recurrence.confirmation=no, the TW_* contract
+#   write => 1    a write: rc.recurrence.confirmation=no, rc.bulk=0, the TW_* contract
 #   err => 'merge' (stderr into the output) or 'null' (default)
 #   errfile => PATH   stderr to that file instead
 #   bare => 1     no rc. overrides at all (task --version takes none)
@@ -1275,7 +1387,9 @@ sub task_open {
   unless ( $opt->{bare} ) {
     push @rc, 'rc.confirmation=no';
     push @rc, 'rc.hooks=off' if $opt->{read};
-    push @rc, 'rc.recurrence.confirmation=no' if $opt->{write};
+    # vit has asked (one task or several marked): task asks nothing more,
+    # and with stdin /dev/null its "alter N tasks?" (over rc.bulk) is a no
+    push @rc, 'rc.recurrence.confirmation=no', 'rc.bulk=0' if $opt->{write};
   }
   my $prog = ( $opt->{ui} || $opt->{write} ) ? &ui() : $task;
   # The report through tw: the user's words first, rc. overrides after (task
@@ -1649,7 +1763,12 @@ sub getch_loop {
         last CASE;
       }
 
-      if ( $ch eq 'j' || $ch eq KEY_DOWN || $ch eq ' ' ) {
+      if ( $ch eq ' ' ) {
+        &toggle_mark();
+        last CASE;
+      }
+
+      if ( $ch eq 'j' || $ch eq KEY_DOWN ) {
         if ( $task_selected_idx >= $#report_tokens ) {
           beep;
           last CASE;
@@ -1844,6 +1963,8 @@ sub getch_loop {
       if ( $ch eq "\e" || $ch eq "\cg" ) {
         $error_msg = '';
         $feedback_msg = '';
+        my $n = &clear_marks();
+        $feedback_msg = "Unmarked $n tasks." if $n;
         $refresh_needed = 1;
         $input_mode = 'cmd';
         last CASE;
@@ -2393,6 +2514,7 @@ sub read_report {
   if ( $mode eq 'refresh' ) {
     &follow_selection($prev_uuid, $prev_offset);
   }
+  &prune_marks();
 }
 
 #------------------------------------------------------------------
@@ -2840,6 +2962,8 @@ sub draw_screen {
     }
     $str = "$num_tasks tasks shown";
   }
+  my $n_marked = scalar(keys %marked);
+  $str .= ", $n_marked marked" if $n_marked;
   &draw_header_line(0,"task $current_command",$str);
   CASE: {
     if ( $current_command eq 'summary' && $num_tasks == 1 ) {
@@ -2904,6 +3028,7 @@ sub draw_screen {
     $line++;
   }
   $report_win->refresh();
+  &draw_gutter();
   if ( $display_start_idx == 0 ) {
     $cursor_position = 'Top';
   } elsif ( $display_start_idx + $REPORT_LINES >= $#report_tokens + 1 ) {
@@ -2938,6 +3063,17 @@ sub draw_screen {
     }
   }
 
+}
+
+#------------------------------------------------------------------
+# draw_gutter -- screen column 0 beside the report: '*' on each marked line
+
+sub draw_gutter {
+  for my $line ( 0 .. $REPORT_LINES - 1 ) {
+    my $i = $display_start_idx + $line;
+    $gutter_win->addstr($line, 0, ( $i <= $#report_tokens && &is_marked($i) ) ? '*' : ' ');
+  }
+  $gutter_win->refresh();
 }
 
 
@@ -3103,7 +3239,11 @@ __DATA__
  cmd   d               mark the current task done
  nav   j               move down one line
  nav   DownArrow       move down one line
- nav   Spacebar        move down one line
+ cmd   Spacebar        mark (or unmark) the current task and move to the next one
+ cmd   Esc             clear the marks
+ cmd   (marked)        d D m P p T w A act on every marked task, and clear the marks after;
+                       D on an annotation line denotates that line; the rest: the current task.
+                       Marked lines: color.vit.marked in the taskrc (black on yellow)
  nav   :N              move to task number N
  nav   0               move to the first line
  nav   gg              move to the first line

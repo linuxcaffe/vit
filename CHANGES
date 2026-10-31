@@ -1,8 +1,9 @@
+ Sat Oct 31 2026 - This is VIT 1.4.3: multi-select (Spacebar); hooks get no terminal behind the
+                    screen; a hook's reason shown
  Sat Oct 31 2026 - multi-select: Spacebar marks (or unmarks) a task and moves to the next; d D m P p T
                     w A act on every marked task (one task call, after vit asks), then clear the
                     marks; Esc clears them. Marked lines: color.vit.marked (black on yellow) and
                     a * beside them; the header counts them. Writes pass rc.bulk=0
- Sat Oct 31 2026 - This is VIT 1.4.3: hooks get no terminal behind the screen; a hook's reason shown
  Sat Oct 31 2026 - a hook's reason (tw_needs_pty's "reason", a spooled command's <unique>.reason)
                     is shown in the question, cut to fit; a spooled command is shown in the
                     terminal before it runs
