@@ -1,3 +1,5 @@
+ Sat Oct 31 2026 - This is VIT 1.4.5: nice dates and times (Ctrl-N); with 1.4.4's mouse and V, which
+                    never reached the registry on its own
  Sat Oct 31 2026 - nice dates and times: with the taskrc's nicedates=on (nicedates.rc), date columns
                     read Yesterday / Today / Tomorrow 3pm / Thursday / Nov20 / Apr1'27; the report
                     runs with rc.dateformat.report as wide as the widest label, so the columns stay
