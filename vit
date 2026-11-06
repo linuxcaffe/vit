@@ -2,7 +2,7 @@
 #
 # VIT - Visual Interactive Taskwarrior
 #
-# 1.4.7
+# 1.4.8
 #
 # Copyright 2012 - 2013, Steve Rader
 # Copyright 2013 - 2018, Scott Kostyshak
@@ -121,7 +121,7 @@ our $tasks_completed = 0;
 our $tasks_pending = 0;
 our $task_selected_idx = 0;
 our $titlebar = 0;
-our $version = '1.4.7';
+our $version = '1.4.8';
 our $REPORT_LINES;
 our $REPORT_COLS;
 
@@ -3060,6 +3060,7 @@ sub inner_read_report {
   my $prev_id;
   my @rows;      # one per task in the report: [ ID or '-', its line's text ]
   my @line2row;  # each line's task, as an index into @rows
+  my ($id_col, $id_width);   # the ID column, from the header (first, or after Active, ...)
   for (@lines) {
     if ( $_ =~ /^\s*$/ ) { next; }
     # a header's separator (2.6.2's summary prints one, colors or not)
@@ -3075,21 +3076,24 @@ sub inner_read_report {
     $_ =~ s/\x1b.*?m//g;
     $report_lines[$i] =  $_;
 
-    # check if this is the header line
-    if ( $_ =~ /^ID / ) {
+    # check if this is the header line: its ID label says where the IDs are
+    if ( ! defined $id_col && ! @rows && $_ =~ /^(.*?)(?<!\S)ID(?!\S)/ ) {
+      $id_col = length($1);
+      $id_width = ( substr($_, $id_col) =~ /^ID\s+/ ) ? $+[0] : undef;
       $report_header_idx = $i;
       $i++;
       next;
     }
 
+    my $row_id = &line_id($_, $id_col, $id_width);
     # ID -: a completed or deleted task, not the task on the line above
-    $prev_id = undef if $_ =~ /^\s{0,5}- /;
-    push @rows, [ $1, $_ ] if $_ =~ /^\s{0,5}(\d+|-) /;
+    $prev_id = undef if defined $row_id && $row_id eq '-';
+    push @rows, [ $row_id, $_ ] if defined $row_id;
     $line2row[$i] = $#rows if @rows;
-    if ( $_ =~ /^\s{0,5}(\d+) / ) {
-      $report2taskid[$i] = $1;
-      $taskid2report[$1] = $i;
-      &audit("inner_read_report: report2taskid[$i]=$1, taskid2report[$1]=$i")
+    if ( defined $row_id && $row_id ne '-' ) {
+      $report2taskid[$i] = $row_id;
+      $taskid2report[$row_id] = $i;
+      &audit("inner_read_report: report2taskid[$i]=$row_id, taskid2report[$row_id]=$i")
     } else {
       $report2taskid[$i] = $prev_id;
       &audit("inner_read_report: report2taskid[$i]=" . ($prev_id // "none"))
@@ -3186,6 +3190,21 @@ sub report_total {
   }
   &task_close($fh);
   return $total;
+}
+
+#------------------------------------------------------------------
+# line_id LINE, COL, WIDTH -- the ID (or '-': no ID) in a report line's ID
+# column, undef if the cell is blank (an annotation, a wrapped line). With no
+# ID label in the header: a number or '-' at the start of the line.
+
+sub line_id {
+  my ($line, $col, $width) = @_;
+  if ( ! defined $col ) {
+    return $line =~ /^\s{0,5}(\d+|-) / ? $1 : undef;
+  }
+  return undef if length($line) <= $col;
+  my $cell = defined $width ? substr($line, $col, $width) : substr($line, $col);
+  return $cell =~ /^\s*(\d+|-)\s*$/ ? $1 : undef;
 }
 
 #------------------------------------------------------------------
