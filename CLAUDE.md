@@ -21,7 +21,7 @@ VIT 1.x, Steve Rader's Perl/Curses full-screen client for Taskwarrior, being ado
 | `exec.pl` | Every `task` call, no shell: `task_open` (argv, own session so no `/dev/tty`, `rc.hooks=off` on reads, the TW_* contract on writes, 15 s `timeout`), `task_read`, `task_check`, `task_exec` (a captured write: `tw_needs_pty` → the terminal, then the spool; a hook's `reason` / `.reason` in the question), `shell_exec` (curses suspended, real terminal; argv, or a string for `/bin/sh` for `:!` maps), `split_args`/`quote_args` |
 | `mouse.pl` | `KEY_MOUSE`: click selects, double-click = Enter, ctrl/right-click toggles a mark, shift-click = `V` (`mark_range`), wheel ±3 (`move_selection`); `set mouse=no` skips `mousemask`. `prompt_getch` drops clicks in prompts. Tests send X10 bytes (`click`, `wheel` in `lib.sh`) |
 | `nice.pl` | Nice dates: `nice_config` (task `_show`: `nicedates`, `nice.*`), `nice_dateformat` (`rc.dateformat.report` = `Y-M-D H:N` padded to the widest label), `nice_lines` (column spans from the header's coloured labels or the dash rule; a column whose cells are all blank or that form is a date column; each cell → its label, same width). Ctrl-N flips `$nice` |
-| `read.pl` | `read_report`: runs `stat`, `projects`, `tags` and the report; builds `@report2taskid`; a report with no-ID rows (completed, deleted) runs again as `id,uuid` to pair those rows with UUIDs by position (`no_id_uuids`: any mismatch, no UUIDs). `d`, `b` and `:!` maps refuse them (`no_id_refused`): `task start` on a completed task reopens it |
+| `read.pl` | `read_report`: runs `stat`, `projects`, `tags` and the report; builds `@report2taskid` (`line_id`: the ID sits under the header's `ID` label, not at the line's start: `next`'s `Active` column comes first once a task starts); a report with no-ID rows (completed, deleted) runs again as `id,uuid` to pair those rows with UUIDs by position (`no_id_uuids`: any mismatch, no UUIDs). `d`, `b` and `:!` maps refuse them (`no_id_refused`): `task start` on a completed task reopens it |
 | `env.pl` | Startup: `task show` for colors, reports, `default.command` |
 | `color.pl`, `draw.pl`, `screen.pl`, `curses.pl` | ANSI parsing into curses color pairs, drawing |
 | `prompt.pl`, `search.pl`, `cmdline.pl` | Prompts (tab completion, history), `/` `?` search, `:` commands |
@@ -35,7 +35,7 @@ start of a line are build syntax: don't start a real line of code with either. T
 parts define subs only, and every global with a value is set in `vit.pl`. `%VERSION%` and `%BUILD%`
 in `vit.pl` are filled in by the build; the help text goes after `__DATA__`, so the built `vit` is the
 one file to install (plus the man pages).
-The installed copy until the fleet installer lands is `/usr/local/bin/vit` (root-owned, built 2025-01-17).
+The installed copy is `~/.task/scripts/vit`, from `tw -u vit` (the old `/usr/local/bin/vit` is gone).
 
 ## Testing
 
@@ -50,7 +50,7 @@ tests/run.sh stale_id      # one test
 - **Found a bug? Write the failing test first**, add it to `tests/xfail.txt`, then fix: the fix turns it
   into an XPASS, which fails the run until its line is removed.
 - Helpers: `t` (quiet `task`), `start_vit REPORT`, `select_text TEXT` (vit's `/` search),
-  `prompt KEY TEXT`, `keys`, `settle` (until the screen stops changing), `field FILTER JQ`, `check MSG CMD…`.
+  `prompt KEY TEXT`, `keys`, `settle` (until the screen stops changing; it can return before a key is processed, so after a key check with `wait_for` or poll), `field FILTER JQ`, `check MSG CMD…`.
   Use report `vt` (id, project, description, sorted by description) so lines have a known order.
 - vit runs with a **closed PATH** (`$T/bin`, task's folder, `/usr/local/bin`, `/usr/bin`, `/bin`), so a
   command installed for the user (`gittw` in `~/.task/scripts`) can never touch real data from a test;
