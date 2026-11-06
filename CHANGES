@@ -1,3 +1,5 @@
+ Fri Nov 06 2026 - the ID is found under the header's ID label, not at the start of the line: a report with
+                    a column before it (Active, which appears when a task starts) no longer loses its tasks
  Fri Nov 06 2026 - This is VIT 1.4.7: completed and deleted tasks can be modified, annotated, edited, deleted
                     and shown from a report; d, b and :! maps refuse them
  Fri Nov 06 2026 - completed and deleted tasks can be acted on from a report: m, A, D, e, Enter and the
