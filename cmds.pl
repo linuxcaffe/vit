@@ -148,7 +148,7 @@ sub task_annotate {
     return;
   }
   my $n = &clear_marks();
-  $feedback_msg = $n ? "Annotated $n tasks." : "Annotated task $id.";
+  $feedback_msg = $n ? "Annotated $n tasks." : "Annotated task " . &shown_id($id) . ".";
   &draw_feedback_msg();
   $reread_needed = 1;
 }
@@ -204,6 +204,7 @@ sub task_start_stop {
   my ($ch, $str, $yes);
   my $id = $report2taskid[$task_selected_idx];
   my $uuid = &selected_uuid() // return;
+  return if &no_id_refused($uuid);
 
   my $state = &task_check($uuid, 'active');
   my $prompt = "stop";
@@ -239,6 +240,7 @@ sub task_done {
   my ($ch, $str, $yes);
   my $id = $report2taskid[$task_selected_idx];
   my @uuids = &targets() or return;
+  return if &no_id_refused(@uuids);
   my $n = scalar(keys %marked);
   if ($confirmation) {
     $yes = &prompt_y($n ? "Mark $n marked tasks done? " : "Mark task $id done? ");
@@ -356,7 +358,7 @@ sub modified_feedback {
   if ( $n ) {
     $feedback_msg = "Modified $n tasks.";
   } else {
-    $feedback_msg = "Modified task $id.";
+    $feedback_msg = "Modified task " . &shown_id($id) . ".";
     &flash_current_task();
   }
 }
@@ -475,10 +477,11 @@ sub shell_command {
     return;
   }
 
-  # no task on this line (a completed task's has no ID): `task  start` would be
-  # a command with no filter at all
-  if ( $cmd =~ /%TASK(?:UUID|ID)/ && ! defined &selected_uuid() ) {
-    return;
+  # no task on this line: `task  start` would be a command with no filter at
+  # all. A completed task's line: vit can't tell what a map does (see no_id_refused)
+  if ( $cmd =~ /%TASK(?:UUID|ID)/ ) {
+    my $uuid = &selected_uuid() // return;
+    return if &no_id_refused($uuid);
   }
 
   my $wait = "no-wait";

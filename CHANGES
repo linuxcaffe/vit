@@ -1,3 +1,6 @@
+ Fri Nov 06 2026 - completed and deleted tasks can be acted on from a report: m, A, D, e, Enter and the
+                    other modify keys use the UUID though the line has no ID. d, b and :! maps refuse there:
+                    task start on a completed task reopens it
  Thu Nov 05 2026 - This is VIT 1.4.6: the report header shows the sort columns and 34/97 tasks; a map on a
                     line with no task is refused, never run with an empty filter
  Thu Nov 05 2026 - the report header draws each label in task's own colours, so the sort columns show

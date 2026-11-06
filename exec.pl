@@ -168,6 +168,24 @@ sub selected_uuid {
 }
 
 #------------------------------------------------------------------
+# no_id_refused UUIDS -- true (and an error shown) if any is a task with no ID:
+# completed or deleted. Done, start and maps stay off those: `task start` on a
+# completed task reopens it without asking.
+
+sub no_id_refused {
+  return 0 if ! grep { $no_id_uuid{$_} } @_;
+  $error_msg = "Not on a completed or deleted task.";
+  &draw_error_msg();
+  return 1;
+}
+
+# shown_id ID -- a task for a message: its ID, else (no ID) its short UUID
+sub shown_id {
+  my ($id) = @_;
+  return $id // substr($report2uuid[$task_selected_idx] // '', 0, 8);
+}
+
+#------------------------------------------------------------------
 # task_exec ARGS -- a write, output captured; returns ($status, $text).
 # A hook that needs a terminal (tw_needs_pty, TW_INTERACTIVE_REQUIRED) gets
 # the same command again in the terminal, if the user says so. Commands a

@@ -116,8 +116,9 @@ In the command, %TASKID is the selected task's ID and %TASKUUID its UUID;
 changes elsewhere (another client, a sync), so a map that changes a task is
 safer with %TASKUUID: task accepts a UUID wherever it takes an ID
 (task %TASKUUID modify ..., task _get %TASKUUID.parent).
-On a line with no task (a completed task's has no ID) such a map is refused:
-vit says so, and the command doesn't run.
+On a completed or deleted task's line (no ID) such a map is refused: vit
+says so, and the command doesn't run. vit can't tell what a map does, and
+task start on a completed task reopens it.
 
 .TP
 .B map \\\\cn=:!wr tasknote %TASKID<Return>

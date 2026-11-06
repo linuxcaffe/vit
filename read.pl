@@ -63,6 +63,7 @@ sub inner_read_report {
   my @prev_num_tasks = $num_tasks;
   my @prev_report2taskid = @report2taskid;
   my @prev_report2uuid = @report2uuid;
+  my %prev_no_id_uuid = %no_id_uuid;
   my @prev_taskid2report = @taskid2report;
   my @prev_report_tokens = @report_tokens;
   my @prev_report_lines = @report_lines;
@@ -79,6 +80,7 @@ sub inner_read_report {
   $prev_task_selected_idx = $task_selected_idx;
   @report2taskid = ();
   @report2uuid = ();
+  %no_id_uuid = ();
   @taskid2report = ();
   @report_tokens = ();
   @report_lines = ();
@@ -178,6 +180,8 @@ sub inner_read_report {
   @lines = &nice_lines(@lines) if $nice;
   my $i = 0;
   my $prev_id;
+  my @rows;      # one per task in the report: [ ID or '-', its line's text ]
+  my @line2row;  # each line's task, as an index into @rows
   for (@lines) {
     if ( $_ =~ /^\s*$/ ) { next; }
     # a header's separator (2.6.2's summary prints one, colors or not)
@@ -202,6 +206,8 @@ sub inner_read_report {
 
     # ID -: a completed or deleted task, not the task on the line above
     $prev_id = undef if $_ =~ /^\s{0,5}- /;
+    push @rows, [ $1, $_ ] if $_ =~ /^\s{0,5}(\d+|-) /;
+    $line2row[$i] = $#rows if @rows;
     if ( $_ =~ /^\s{0,5}(\d+) / ) {
       $report2taskid[$i] = $1;
       $taskid2report[$1] = $i;
@@ -243,6 +249,7 @@ sub inner_read_report {
     splice(@report_colors_bg,$report_header_idx,1);
     splice(@report_attrs,$report_header_idx,1);
     splice(@report2taskid,$report_header_idx,1);
+    splice(@line2row,$report_header_idx,1) if $report_header_idx <= $#line2row;
     for my $id (0..$#taskid2report) {
       next if ! defined $taskid2report[$id];
       $taskid2report[$id]-- if $taskid2report[$id] > $report_header_idx;
@@ -251,6 +258,16 @@ sub inner_read_report {
       $task_selected_idx = $#report_tokens;
     }
     @report2uuid = map { defined $_ ? $uuid{$_} : undef } @report2taskid;
+    # A line with no ID (a completed or deleted task) has no ID to ask with
+    if ( grep { $_->[0] eq '-' } @rows ) {
+      my @row_uuid = &no_id_uuids(\@rows, join('', @report_header_tokens) =~ /\bUUID\b/);
+      for my $l ( 0 .. $#report2taskid ) {
+        next if defined $report2taskid[$l] || ! defined $line2row[$l];
+        my $u = $row_uuid[ $line2row[$l] ] // next;
+        $report2uuid[$l] = $u;
+        $no_id_uuid{$u} = 1;
+      }
+    }
   } else {
     $error_msg = "Error: task $current_command: no matches";
     $current_command = $prev_command;
@@ -267,6 +284,7 @@ sub inner_read_report {
     @report_attrs = @prev_report_attrs;
     @report2taskid = @prev_report2taskid;
     @report2uuid = @prev_report2uuid;
+    %no_id_uuid = %prev_no_id_uuid;
     @taskid2report = @prev_taskid2report;
     $convergence = $prev_convergence;
     return;
@@ -280,9 +298,7 @@ sub inner_read_report {
 # no report (the header then gives the plain count).
 
 sub report_total {
-  my %is_report = map { $_ => 1 } @report_types;
-  my ($report) = grep { $is_report{$_} } &split_args($current_command);
-  return undef if ! defined $report;
+  my $report = &report_name() // return undef;
   my $filter = &task_get("rc.report.$report.filter");
   my @words = grep { ! /^limit:/ } &split_args($filter);
   my $fh = &task_open({ read => 1 }, 'rc.context=none', ( @words ? ( '(', @words, ')' ) : () ), 'count');
@@ -292,6 +308,44 @@ sub report_total {
   }
   &task_close($fh);
   return $total;
+}
+
+#------------------------------------------------------------------
+# report_name -- the report the current command names, or undef
+
+sub report_name {
+  my %is_report = map { $_ => 1 } @report_types;
+  my ($report) = grep { $is_report{$_} } &split_args($current_command);
+  return $report;
+}
+
+#------------------------------------------------------------------
+# no_id_uuids ROWS, HAS_UUID_COLUMN -- for each report row with no ID, its UUID
+# (undef elsewhere). The same command again with only the ID and UUID columns
+# lists the same tasks in the same order, so the rows pair off by position; any
+# doubt about that (the data changed between the calls, an unusual report) and
+# there are no UUIDs: such a line then refuses, it never acts on another task.
+
+sub no_id_uuids {
+  my ($rows, $has_uuid_column) = @_;
+  my $report = &report_name() // return ();
+  my $fh = &task_open({ read => 1, ui => 1 }, &split_args($current_command),
+                      "rc.report.$report.columns=id,uuid", "rc.report.$report.labels=ID,UUID",
+                      'rc.defaultwidth=200', 'rc.defaultheight=0', 'rc._forcecolor=off', 'rc.verbose=nothing');
+  my @listed;
+  while ( my $line = <$fh> ) {
+    push @listed, [ $1, $2 ] if $line =~ /^\s*(\d+|-)\s+([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\s*$/;
+  }
+  &task_close($fh);
+  return () if @listed != @$rows;
+  my @uuids;
+  for my $r ( 0 .. $#listed ) {
+    return () if $listed[$r][0] ne $rows->[$r][0];
+    my $short = substr($listed[$r][1], 0, 8);
+    return () if $has_uuid_column && index($rows->[$r][1], $short) < 0;
+    $uuids[$r] = $listed[$r][1] if $listed[$r][0] eq '-';
+  }
+  return @uuids;
 }
 
 #------------------------------------------------------------------

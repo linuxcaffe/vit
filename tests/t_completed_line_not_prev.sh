@@ -8,7 +8,8 @@ echo 'color.alternate=on color8' >> "$TASKRC"
 t add beta; t description:beta done; t add alpha
 start_vit all
 select_text beta
-keys +; settle
+keys +
+check "refused" wait_for "completed or deleted"
 check "the pending task above isn't started" test "$(field 'description:alpha' '.[0].start // ""')" = ""
 keys d; sleep 0.2; settle
 check "nor done" test "$(field 'description:alpha' '.[0].status')" = pending

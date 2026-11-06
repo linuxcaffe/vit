@@ -88,6 +88,7 @@ our $report_descr = 'unknown';
 our $report_win;
 our @report_header_tokens = ();
 our $report_total;
+our %no_id_uuid;
 our @report_header_colors_fg = ();
 our @report_header_colors_bg = ();
 our @report_header_attrs = ();
