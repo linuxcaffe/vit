@@ -1,3 +1,5 @@
+ Fri Nov 06 2026 - This is VIT 1.4.7: completed and deleted tasks can be modified, annotated, edited, deleted
+                    and shown from a report; d, b and :! maps refuse them
  Fri Nov 06 2026 - completed and deleted tasks can be acted on from a report: m, A, D, e, Enter and the
                     other modify keys use the UUID though the line has no ID. d, b and :! maps refuse there:
                     task start on a completed task reopens it

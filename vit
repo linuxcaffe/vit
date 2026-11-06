@@ -2,7 +2,7 @@
 #
 # VIT - Visual Interactive Taskwarrior
 #
-# 1.4.6
+# 1.4.7
 #
 # Copyright 2012 - 2013, Steve Rader
 # Copyright 2013 - 2018, Scott Kostyshak
@@ -88,6 +88,7 @@ our $report_descr = 'unknown';
 our $report_win;
 our @report_header_tokens = ();
 our $report_total;
+our %no_id_uuid;
 our @report_header_colors_fg = ();
 our @report_header_colors_bg = ();
 our @report_header_attrs = ();
@@ -120,7 +121,7 @@ our $tasks_completed = 0;
 our $tasks_pending = 0;
 our $task_selected_idx = 0;
 our $titlebar = 0;
-our $version = '1.4.6';
+our $version = '1.4.7';
 our $REPORT_LINES;
 our $REPORT_COLS;
 
@@ -483,7 +484,7 @@ sub task_annotate {
     return;
   }
   my $n = &clear_marks();
-  $feedback_msg = $n ? "Annotated $n tasks." : "Annotated task $id.";
+  $feedback_msg = $n ? "Annotated $n tasks." : "Annotated task " . &shown_id($id) . ".";
   &draw_feedback_msg();
   $reread_needed = 1;
 }
@@ -539,6 +540,7 @@ sub task_start_stop {
   my ($ch, $str, $yes);
   my $id = $report2taskid[$task_selected_idx];
   my $uuid = &selected_uuid() // return;
+  return if &no_id_refused($uuid);
 
   my $state = &task_check($uuid, 'active');
   my $prompt = "stop";
@@ -574,6 +576,7 @@ sub task_done {
   my ($ch, $str, $yes);
   my $id = $report2taskid[$task_selected_idx];
   my @uuids = &targets() or return;
+  return if &no_id_refused(@uuids);
   my $n = scalar(keys %marked);
   if ($confirmation) {
     $yes = &prompt_y($n ? "Mark $n marked tasks done? " : "Mark task $id done? ");
@@ -691,7 +694,7 @@ sub modified_feedback {
   if ( $n ) {
     $feedback_msg = "Modified $n tasks.";
   } else {
-    $feedback_msg = "Modified task $id.";
+    $feedback_msg = "Modified task " . &shown_id($id) . ".";
     &flash_current_task();
   }
 }
@@ -810,10 +813,11 @@ sub shell_command {
     return;
   }
 
-  # no task on this line (a completed task's has no ID): `task  start` would be
-  # a command with no filter at all
-  if ( $cmd =~ /%TASK(?:UUID|ID)/ && ! defined &selected_uuid() ) {
-    return;
+  # no task on this line: `task  start` would be a command with no filter at
+  # all. A completed task's line: vit can't tell what a map does (see no_id_refused)
+  if ( $cmd =~ /%TASK(?:UUID|ID)/ ) {
+    my $uuid = &selected_uuid() // return;
+    return if &no_id_refused($uuid);
   }
 
   my $wait = "no-wait";
@@ -1559,6 +1563,24 @@ sub selected_uuid {
     return undef;
   }
   return $uuid;
+}
+
+#------------------------------------------------------------------
+# no_id_refused UUIDS -- true (and an error shown) if any is a task with no ID:
+# completed or deleted. Done, start and maps stay off those: `task start` on a
+# completed task reopens it without asking.
+
+sub no_id_refused {
+  return 0 if ! grep { $no_id_uuid{$_} } @_;
+  $error_msg = "Not on a completed or deleted task.";
+  &draw_error_msg();
+  return 1;
+}
+
+# shown_id ID -- a task for a message: its ID, else (no ID) its short UUID
+sub shown_id {
+  my ($id) = @_;
+  return $id // substr($report2uuid[$task_selected_idx] // '', 0, 8);
 }
 
 #------------------------------------------------------------------
@@ -2919,6 +2941,7 @@ sub inner_read_report {
   my @prev_num_tasks = $num_tasks;
   my @prev_report2taskid = @report2taskid;
   my @prev_report2uuid = @report2uuid;
+  my %prev_no_id_uuid = %no_id_uuid;
   my @prev_taskid2report = @taskid2report;
   my @prev_report_tokens = @report_tokens;
   my @prev_report_lines = @report_lines;
@@ -2935,6 +2958,7 @@ sub inner_read_report {
   $prev_task_selected_idx = $task_selected_idx;
   @report2taskid = ();
   @report2uuid = ();
+  %no_id_uuid = ();
   @taskid2report = ();
   @report_tokens = ();
   @report_lines = ();
@@ -3034,6 +3058,8 @@ sub inner_read_report {
   @lines = &nice_lines(@lines) if $nice;
   my $i = 0;
   my $prev_id;
+  my @rows;      # one per task in the report: [ ID or '-', its line's text ]
+  my @line2row;  # each line's task, as an index into @rows
   for (@lines) {
     if ( $_ =~ /^\s*$/ ) { next; }
     # a header's separator (2.6.2's summary prints one, colors or not)
@@ -3058,6 +3084,8 @@ sub inner_read_report {
 
     # ID -: a completed or deleted task, not the task on the line above
     $prev_id = undef if $_ =~ /^\s{0,5}- /;
+    push @rows, [ $1, $_ ] if $_ =~ /^\s{0,5}(\d+|-) /;
+    $line2row[$i] = $#rows if @rows;
     if ( $_ =~ /^\s{0,5}(\d+) / ) {
       $report2taskid[$i] = $1;
       $taskid2report[$1] = $i;
@@ -3099,6 +3127,7 @@ sub inner_read_report {
     splice(@report_colors_bg,$report_header_idx,1);
     splice(@report_attrs,$report_header_idx,1);
     splice(@report2taskid,$report_header_idx,1);
+    splice(@line2row,$report_header_idx,1) if $report_header_idx <= $#line2row;
     for my $id (0..$#taskid2report) {
       next if ! defined $taskid2report[$id];
       $taskid2report[$id]-- if $taskid2report[$id] > $report_header_idx;
@@ -3107,6 +3136,16 @@ sub inner_read_report {
       $task_selected_idx = $#report_tokens;
     }
     @report2uuid = map { defined $_ ? $uuid{$_} : undef } @report2taskid;
+    # A line with no ID (a completed or deleted task) has no ID to ask with
+    if ( grep { $_->[0] eq '-' } @rows ) {
+      my @row_uuid = &no_id_uuids(\@rows, join('', @report_header_tokens) =~ /\bUUID\b/);
+      for my $l ( 0 .. $#report2taskid ) {
+        next if defined $report2taskid[$l] || ! defined $line2row[$l];
+        my $u = $row_uuid[ $line2row[$l] ] // next;
+        $report2uuid[$l] = $u;
+        $no_id_uuid{$u} = 1;
+      }
+    }
   } else {
     $error_msg = "Error: task $current_command: no matches";
     $current_command = $prev_command;
@@ -3123,6 +3162,7 @@ sub inner_read_report {
     @report_attrs = @prev_report_attrs;
     @report2taskid = @prev_report2taskid;
     @report2uuid = @prev_report2uuid;
+    %no_id_uuid = %prev_no_id_uuid;
     @taskid2report = @prev_taskid2report;
     $convergence = $prev_convergence;
     return;
@@ -3136,9 +3176,7 @@ sub inner_read_report {
 # no report (the header then gives the plain count).
 
 sub report_total {
-  my %is_report = map { $_ => 1 } @report_types;
-  my ($report) = grep { $is_report{$_} } &split_args($current_command);
-  return undef if ! defined $report;
+  my $report = &report_name() // return undef;
   my $filter = &task_get("rc.report.$report.filter");
   my @words = grep { ! /^limit:/ } &split_args($filter);
   my $fh = &task_open({ read => 1 }, 'rc.context=none', ( @words ? ( '(', @words, ')' ) : () ), 'count');
@@ -3148,6 +3186,44 @@ sub report_total {
   }
   &task_close($fh);
   return $total;
+}
+
+#------------------------------------------------------------------
+# report_name -- the report the current command names, or undef
+
+sub report_name {
+  my %is_report = map { $_ => 1 } @report_types;
+  my ($report) = grep { $is_report{$_} } &split_args($current_command);
+  return $report;
+}
+
+#------------------------------------------------------------------
+# no_id_uuids ROWS, HAS_UUID_COLUMN -- for each report row with no ID, its UUID
+# (undef elsewhere). The same command again with only the ID and UUID columns
+# lists the same tasks in the same order, so the rows pair off by position; any
+# doubt about that (the data changed between the calls, an unusual report) and
+# there are no UUIDs: such a line then refuses, it never acts on another task.
+
+sub no_id_uuids {
+  my ($rows, $has_uuid_column) = @_;
+  my $report = &report_name() // return ();
+  my $fh = &task_open({ read => 1, ui => 1 }, &split_args($current_command),
+                      "rc.report.$report.columns=id,uuid", "rc.report.$report.labels=ID,UUID",
+                      'rc.defaultwidth=200', 'rc.defaultheight=0', 'rc._forcecolor=off', 'rc.verbose=nothing');
+  my @listed;
+  while ( my $line = <$fh> ) {
+    push @listed, [ $1, $2 ] if $line =~ /^\s*(\d+|-)\s+([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\s*$/;
+  }
+  &task_close($fh);
+  return () if @listed != @$rows;
+  my @uuids;
+  for my $r ( 0 .. $#listed ) {
+    return () if $listed[$r][0] ne $rows->[$r][0];
+    my $short = substr($listed[$r][1], 0, 8);
+    return () if $has_uuid_column && index($rows->[$r][1], $short) < 0;
+    $uuids[$r] = $listed[$r][1] if $listed[$r][0] eq '-';
+  }
+  return @uuids;
 }
 
 #------------------------------------------------------------------
