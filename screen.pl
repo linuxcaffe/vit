@@ -16,11 +16,11 @@ sub draw_screen {
       $str = "$num_projects projects";
       last CASE;
     }
-    if ( $num_tasks == 1 ) {
-      $str = '1 task shown';
+    if ( defined $report_total && $num_tasks < $report_total ) {
+      $str = "$num_tasks/$report_total tasks";
       last CASE;
     }
-    $str = "$num_tasks tasks shown";
+    $str = ( $num_tasks == 1 ) ? '1 task' : "$num_tasks tasks";
   }
   my $n_marked = scalar(keys %marked);
   $str .= ", $n_marked marked" if $n_marked;
@@ -49,11 +49,19 @@ sub draw_screen {
   $header_win->attron(COLOR_PAIR($COLOR_REPORT_HEADER));
   $x = 1;
   for $t (0 .. $#report_header_tokens) {
+    # each label as task colours it (color.label.sort on the sort columns);
+    # the uncoloured gaps between labels in the header's colour, one bar
+    my ($lfg, $lbg) = ( $report_header_colors_fg[$t], $report_header_colors_bg[$t] );
+    my $coloured = ( $lfg != 999999 || $lbg != 999999 );
+    my $lcp = $coloured ? &get_color_pair($lfg,$lbg) : $COLOR_REPORT_HEADER;
+    $header_win->attron(COLOR_PAIR($lcp));
     &set_attron($header_win,$report_header_attrs[$t]);
     $header_win->addstr(2,$x,$report_header_tokens[$t]);
     &set_attroff($header_win,$report_header_attrs[$t]);
+    $header_win->attroff(COLOR_PAIR($lcp));
     $x += length($report_header_tokens[$t]);
   }
+  $header_win->attron(COLOR_PAIR($COLOR_REPORT_HEADER));
 
   my $repeat_count=($REPORT_COLS - $x + 1);
   if ( $repeat_count < 0 ) {

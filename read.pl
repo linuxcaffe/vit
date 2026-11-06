@@ -71,6 +71,8 @@ sub inner_read_report {
   my @prev_report_attrs = @report_attrs;
   my @prev_report_header_tokens = @report_header_tokens;
   my @prev_report_header_attrs = @report_header_attrs;
+  my @prev_report_header_colors_fg = @report_header_colors_fg;
+  my @prev_report_header_colors_bg = @report_header_colors_bg;
   $prev_convergence = $convergence;
 
   $prev_display_start_idx = $display_start_idx;
@@ -85,6 +87,8 @@ sub inner_read_report {
   @report_attrs = ();
   @report_header_tokens = ();
   @report_header_attrs = ();
+  @report_header_colors_fg = ();
+  @report_header_colors_bg = ();
   @project_types = ();
   if ( $mode eq 'init' ) {
     $task_selected_idx = 0;
@@ -177,7 +181,7 @@ sub inner_read_report {
   for (@lines) {
     if ( $_ =~ /^\s*$/ ) { next; }
     # a header's separator (2.6.2's summary prints one, colors or not)
-    if ( $_ =~ /^(\x1b.*?m)*[\s-]*-[\s-]*(\x1b.*?m)*$/ ) { next; }
+    if ( $_ =~ /^(\x1b\[[0-9;]*m)*[\s-]*-[\s-]*(\x1b\[[0-9;]*m)*$/ ) { next; }
     if ( $_ =~ /^(\d+) tasks?$/ ||
          $_ =~ /^\x1b.*?m(\d+) tasks?\x1b\[0m$/ ||
          $_ =~ /^\d+ tasks?, (\d+) shown$/ ||
@@ -196,6 +200,8 @@ sub inner_read_report {
       next;
     }
 
+    # ID -: a completed or deleted task, not the task on the line above
+    $prev_id = undef if $_ =~ /^\s{0,5}- /;
     if ( $_ =~ /^\s{0,5}(\d+) / ) {
       $report2taskid[$i] = $1;
       $taskid2report[$1] = $i;
@@ -207,6 +213,8 @@ sub inner_read_report {
     $prev_id = $report2taskid[$i];
     $i++;
   }
+
+  $report_total = &report_total();
 
   # IDs shift when the data changes behind vit (tw-web, a sync): keep each
   # line's UUID, and act on that. The context comes in the same call.
@@ -227,6 +235,8 @@ sub inner_read_report {
     #       or at least needs explanation of what is happening here. [BaZo]
     @report_header_tokens = @{ $report_tokens[$report_header_idx] };
     @report_header_attrs = @{ $report_attrs[$report_header_idx] };
+    @report_header_colors_fg = @{ $report_colors_fg[$report_header_idx] };
+    @report_header_colors_bg = @{ $report_colors_bg[$report_header_idx] };
     splice(@report_tokens,$report_header_idx,1);
     splice(@report_lines,$report_header_idx,1);
     splice(@report_colors_fg,$report_header_idx,1);
@@ -248,6 +258,8 @@ sub inner_read_report {
     $task_selected_idx = $prev_task_selected_idx;
     @report_header_tokens = @prev_report_header_tokens;
     @report_header_attrs = @prev_report_header_attrs;
+    @report_header_colors_fg = @prev_report_header_colors_fg;
+    @report_header_colors_bg = @prev_report_header_colors_bg;
     @report_tokens = @prev_report_tokens;
     @report_lines = @prev_report_lines;
     @report_colors_fg = @prev_report_colors_fg;
@@ -260,6 +272,26 @@ sub inner_read_report {
     return;
   }
 
+}
+
+#------------------------------------------------------------------
+# report_total -- how many tasks the current report holds with no context and
+# no typed filter: the bottom of the header's 34/92. undef if the command names
+# no report (the header then gives the plain count).
+
+sub report_total {
+  my %is_report = map { $_ => 1 } @report_types;
+  my ($report) = grep { $is_report{$_} } &split_args($current_command);
+  return undef if ! defined $report;
+  my $filter = &task_get("rc.report.$report.filter");
+  my @words = grep { ! /^limit:/ } &split_args($filter);
+  my $fh = &task_open({ read => 1 }, 'rc.context=none', ( @words ? ( '(', @words, ')' ) : () ), 'count');
+  my $total;
+  while ( my $line = <$fh> ) {
+    $total = $1 if $line =~ /^(\d+)\s*$/;
+  }
+  &task_close($fh);
+  return $total;
 }
 
 #------------------------------------------------------------------

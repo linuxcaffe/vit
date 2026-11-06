@@ -475,6 +475,12 @@ sub shell_command {
     return;
   }
 
+  # no task on this line (a completed task's has no ID): `task  start` would be
+  # a command with no filter at all
+  if ( $cmd =~ /%TASK(?:UUID|ID)/ && ! defined &selected_uuid() ) {
+    return;
+  }
+
   my $wait = "no-wait";
   foreach my $l ( split //, $opts ) {
     if ( $l eq 'r' ) {

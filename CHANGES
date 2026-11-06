@@ -1,3 +1,10 @@
+ Thu Nov 05 2026 - the report header draws each label in task's own colours, so the sort columns show
+                    (color.label.sort), as in task's own reports
+ Thu Nov 05 2026 - the header reads 34/97 tasks: shown, of what the report holds with no context and no
+                    typed filter (plain 97 tasks when they're the same)
+ Thu Nov 05 2026 - a :! map using %TASKUUID or %TASKID on a line with no task is refused: it ran with an
+                    empty filter (task's "no filter, will modify all tasks"). A completed task's line
+                    is no longer taken for the task above it, or dropped from the report when coloured
  Sat Oct 31 2026 - This is VIT 1.4.5: nice dates and times (Ctrl-N); with 1.4.4's mouse and V, which
                     never reached the registry on its own
  Sat Oct 31 2026 - nice dates and times: with the taskrc's nicedates=on (nicedates.rc), date columns
