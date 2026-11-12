@@ -1,3 +1,5 @@
+ Wed Nov 11 2026 - This is VIT 1.4.9: inverse colours no longer kill vit (the recurring report through tw);
+                    the f filter stays through report changes; the header's middle shows the version and filter
  Wed Nov 11 2026 - the f filter stays through report changes until f clears it (empty), and shows in the
                     middle of the header's second line; the first line's middle says vit vVERSION
  Wed Nov 11 2026 - an inverse colour (\e[4;7m, tw's report labels) no longer kills vit (fg -23): every
