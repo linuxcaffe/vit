@@ -172,7 +172,7 @@ sub inner_read_report {
   # stderr kept aside: task says there when the context was overridden
   # (rc.context=… typed, or tw's @_ and @: name), which the header shows
   my $errf = File::Temp->new(TEMPLATE => 'vit-err.XXXXXX', TMPDIR => 1);
-  *IN = &task_open({ read => 1, ui => 1, errfile => $errf->filename }, &split_args($current_command),
+  *IN = &task_open({ read => 1, ui => 1, errfile => $errf->filename }, &command_args(),
                    "rc.defaultwidth=$REPORT_COLS", 'rc.defaultheight=0', 'rc._forcecolor=on',
                    $nice ? ( 'rc.dateformat.report=' . &nice_dateformat() ) : ());
   my @lines = map { chop; &decode_utf8($_) } <IN>;
@@ -273,8 +273,9 @@ sub inner_read_report {
       }
     }
   } else {
-    $error_msg = "Error: task $current_command: no matches";
+    $error_msg = "Error: task " . &quote_args(&command_args()) . ": no matches";
     $current_command = $prev_command;
+    $filter = $prev_filter;
     $display_start_idx = $prev_display_start_idx;
     $task_selected_idx = $prev_task_selected_idx;
     @report_header_tokens = @prev_report_header_tokens;
@@ -293,7 +294,7 @@ sub inner_read_report {
     $convergence = $prev_convergence;
     return;
   }
-
+  $prev_filter = $filter;
 }
 
 #------------------------------------------------------------------
@@ -330,6 +331,17 @@ sub line_id {
 }
 
 #------------------------------------------------------------------
+# command_args -- what a report read runs: f's filter, then the command. tw's
+# @_ and @: name work only first, so a command's leading @ words go in front.
+
+sub command_args {
+  my @c = &split_args($current_command);
+  my @at;
+  push @at, shift @c while @c && $c[0] =~ /^@/;
+  return (@at, &split_args($filter), @c);
+}
+
+#------------------------------------------------------------------
 # report_name -- the report the current command names, or undef
 
 sub report_name {
@@ -348,7 +360,7 @@ sub report_name {
 sub no_id_uuids {
   my ($rows, $has_uuid_column) = @_;
   my $report = &report_name() // return ();
-  my $fh = &task_open({ read => 1, ui => 1 }, &split_args($current_command),
+  my $fh = &task_open({ read => 1, ui => 1 }, &command_args(),
                       "rc.report.$report.columns=id,uuid", "rc.report.$report.labels=ID,UUID",
                       'rc.defaultwidth=200', 'rc.defaultheight=0', 'rc._forcecolor=off', 'rc.verbose=nothing');
   my @listed;

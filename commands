@@ -24,7 +24,7 @@
  cmd   Q               exit
  cmd   ZZ              exit
  cmd   :q              exit
- cmd   f FILTER        filter the current report with FILTER
+ cmd   f FILTER        filter every report with FILTER, until f clears it
  cmd   d               mark the current task done
  nav   j               move down one line
  nav   DownArrow       move down one line

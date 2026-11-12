@@ -1,13 +1,31 @@
 # Copyright 2012 - 2013, Steve Rader
 # Copyright 2013 - 2018, Scott Kostyshak
 
+# draw_header_line ROW, LEFT, RIGHT -- and the row's middle (header_mid):
+# centred, else just after LEFT, cut to what fits before RIGHT
 sub draw_header_line {
   my ($row,$lhs,$rhs) = @_;
+  my $mid = &header_mid($row);
   my $str = ' ' x $COLS;
   $header_win->addstr($row, 0, $str);
   $header_win->addstr($row, 0, $lhs);
   $header_win->addstr($row, $COLS - length($rhs), $rhs);
+  if ( $mid ne '' ) {
+    my $lo = length($lhs) + 2;
+    my $hi = $COLS - length($rhs) - 2;
+    my $x = int(($COLS - length($mid)) / 2);
+    $x = $lo if $x < $lo;
+    $mid = substr($mid, 0, $hi - $x) if $x + length($mid) > $hi;
+    $header_win->addstr($row, $x, $mid) if $hi - $x > 0 && $mid ne '';
+  }
   $header_win->refresh();
+}
+
+sub header_mid {
+  my ($row) = @_;
+  return "vit v$version" if $row == 0;
+  return "filter: $filter" if $row == 1 && $filter ne '';
+  return '';
 }
 
 #------------------------------------------------------------------

@@ -278,17 +278,16 @@ sub task_filter {
   my %is_report = map { $_ => 1 } @report_types;
   my ($r) = grep { $is_report{$w[$_]} } 0 .. $#w;
   my $c = defined $r ? $w[$r] : '';
-  my $f = &quote_args(map { $w[$_] } grep { ! defined $r || $_ != $r } 0 .. $#w);
+  # the active filter, plus any words typed with the report (:next +home)
+  my $f = join(' ', grep { $_ ne '' } $filter,
+               &quote_args(map { $w[$_] } grep { ! defined $r || $_ != $r } 0 .. $#w));
   my $str = &prompt_str("Filter: $f");
-  if ( $str eq '' ) {
-    &draw_prompt_line('');
-    $current_command = $c ne '' ? $c : $default_command;
-    if ( $f ne '' ) { $reread_needed = 1; }
-    return;
-  }
   $prev_command = $current_command;
-  $current_command = $c ne '' ? "$str $c" : $str;
-  $reread_needed = 1;
+  $prev_filter = $filter;
+  $current_command = $c ne '' ? $c : $default_command;
+  $filter = $str;
+  &draw_prompt_line('') if $str eq '';
+  $reread_needed = 1 if $str ne '' || $f ne '';
 }
 
 #------------------------------------------------------------------
@@ -499,7 +498,7 @@ sub shell_command {
 
   $cmd =~ s/%TASKUUID/$report2uuid[$task_selected_idx] \/\/ ''/ge;
   $cmd =~ s/%TASKID/$report2taskid[$task_selected_idx]/g;
-  $cmd =~ s/%TASKARGS/$current_command/g;
+  $cmd =~ s/%TASKARGS/&quote_args(&command_args())/ge;
 
   &shell_exec($cmd,"$wait");
 }

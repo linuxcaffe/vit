@@ -1,3 +1,7 @@
+ Wed Nov 11 2026 - the f filter stays through report changes until f clears it (empty), and shows in the
+                    middle of the header's second line; the first line's middle says vit vVERSION
+ Wed Nov 11 2026 - an inverse colour (\e[4;7m, tw's report labels) no longer kills vit (fg -23): every
+                    colour sequence is read by its parameters
  Fri Nov 06 2026 - This is VIT 1.4.8: a started task keeps its line: with an Active column before ID, its row
                     no longer loses its ID (No task on this line) or takes the ID of the task above
  Fri Nov 06 2026 - the ID is found under the header's ID label, not at the start of the line: a report with

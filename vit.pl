@@ -77,6 +77,8 @@ our @parsed_attrs = ();
 our $prev_display_start_idx;
 our $prev_ch = '';
 our $prev_command = 'next';
+our $filter = '';         # f's filter: kept through report changes until f clears it
+our $prev_filter = '';    # restored with $prev_command when a read finds no matches
 our $prev_convergence = '';
 our $prev_task_selected_idx;
 our @project_types = ();
