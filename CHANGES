@@ -1,3 +1,6 @@
+ Tue Nov 24 2026 - a report with no matches at startup (tw +domain list, every match waiting) opens empty
+                    with its "no matches" note, instead of "Fatal error: default.command ... must print an
+                    ID column"; a report with no ID column still stops vit
  Wed Nov 11 2026 - This is VIT 1.4.9: inverse colours no longer kill vit (the recurring report through tw);
                     the f filter stays through report changes; the header's middle shows the version and filter
  Wed Nov 11 2026 - the f filter stays through report changes until f clears it (empty), and shows in the

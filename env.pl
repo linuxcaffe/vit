@@ -91,8 +91,11 @@ sub init_task_env {
   }
   *IN = &task_open({ read => 1, ui => 1, err => 'merge' }, &split_args($default_command),
                    'rc._forcecolor=on', 'rc.verbose=on');
+  my $no_matches = 0;
   while(<IN>) {
     chop;
+    # An empty report prints no header, only this: it's a report all the same (tw +domain list)
+    $no_matches = 1 if $_ =~ /^(?:\x1b\[[\d;]*m)*No matches\./;
     if ( $_ =~ /ID/ || ($default_command eq 'summary' && $_ =~ /Project/) ) {
       &parse_line(0,$_);
       @report_header_colors_fg = @parsed_colors_fg;
@@ -105,7 +108,7 @@ sub init_task_env {
     }
   }
   close(IN);
-  if ( ! $id_column && $default_command ne 'summary' ) {
+  if ( ! $id_column && $default_command ne 'summary' && ! $no_matches ) {
     endwin();
     print "Fatal error: default.command (\"$default_command\") must print an \"ID\" column\n";
     exit(1);
@@ -120,6 +123,7 @@ sub init_task_env {
   @priority_values = grep { $_ ne '' } split(/,/, &task_get('rc.uda.priority.values'));
   &audit("ENV default command is \"$default_command\"");
   $current_command = $default_command;
+  $prev_command = $default_command;   # an empty first report falls back to itself, not to `next`
   push(@reports,$default_command);
   push(@reports,'summary');
   @report_types = sort(@reports);
