@@ -1,3 +1,5 @@
+ Wed Nov 25 2026 - This is VIT 1.4.10: a report with no matches at startup opens empty instead of stopping
+                    vit ("must print an ID column"); t_hook_no_tty passes from a terminal too
  Tue Nov 24 2026 - a report with no matches at startup (tw +domain list, every match waiting) opens empty
                     with its "no matches" note, instead of "Fatal error: default.command ... must print an
                     ID column"; a report with no ID column still stops vit

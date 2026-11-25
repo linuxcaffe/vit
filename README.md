@@ -1,7 +1,7 @@
 # vit
 
 A full-screen terminal interface for Taskwarrior 2.6.x with Vim key bindings: an uncluttered view of any
-report, no mouse, and a keystroke for each common change.
+report, mouse-able, multi-select and a configurable keystroke for each common change.
 
 ```
 tw -I vit        # install (awesome-taskwarrior)
