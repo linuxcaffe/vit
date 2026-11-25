@@ -113,9 +113,12 @@ tests/run.sh stale_id      # one test
 1. Set `VERSION` (no `-dev`), `version=` in `vit.meta`, `VERSION=` in `vit.install`; a `CHANGES` line.
 2. `./build.sh vit` (a release build has no date or hash, so it's reproducible); the pre-commit hook
    refuses a staged `vit` that isn't a fresh build.
-3. `tests/run.sh` (make-awesome's Testing stage only runs `test-*.py`, not this suite).
+3. `tests/run.sh` (make-awesome's Testing stage only runs `test-*.py`, not this suite), and once from a
+   terminal: `script -qec tests/run.sh /dev/null`. The pre-commit hook runs the suite from the user's
+   terminal, and a test can pass without one and fail with one (t_hook_no_tty blocked 1.4.10's commit).
 4. The user runs `make-awesome.py "vit X.Y.Z: …" --dry-run`, then for real (its meta stage asks questions).
-5. Wait for raw GitHub (~5 min), check `registry.d/vit.meta` and `index.json`, then `tw -I vit` / `tw -u vit`
+5. Wait for raw GitHub (~5 min; each file goes stale on its own: `VERSION` was new while `vit` was still
+   the old one), check `registry.d/vit.meta`, `index.json` and each file's sha256 against the meta, then `tw -I vit` / `tw -u vit`
    on yoga only, and sync (fleet: one station).
 6. Back to `X.Y.Z+1-dev` in `VERSION`.
 
